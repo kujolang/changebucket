@@ -1,0 +1,267 @@
+# ChangeBudget test suite.
+#
+# A self-contained, filesystem-isolated harness. It exercises the library
+# modules directly (the same functions the CLI delegates to), using throwaway
+# git repos under the system temp directory. It needs no network, no API key,
+# and no global machine state.
+#
+# Run with:
+#   ./tests/run.sh
+# Exits non-zero if any assertion fails.
+#
+# NOTE: the built-in `test "..." {}` framework cannot see file-level imports on
+# the current runtime, so this hand-rolled harness is used instead. It runs on
+# the standard launcher path where module imports work normally.
+
+from src.classify import classify
+from src.analyze import analyze, risk_level
+from src.budget import empty_config, evaluate, has_constraints
+from src.render import render_text, render_markdown
+from src.util import commas
+
+mut passed := 0
+mut failed := 0
+
+func check(cond, name) {
+    if cond == true {
+        passed = passed + 1
+    } else {
+        failed = failed + 1
+        print("  FAIL: " + name)
+    }
+}
+
+func check_eq(actual, expected, name) {
+    if "${actual}" == "${expected}" {
+        passed = passed + 1
+    } else {
+        failed = failed + 1
+        print("  FAIL: " + name + " (expected ${expected}, got ${actual})")
+    }
+}
+
+func has(arr, value) {
+    for item in arr {
+        if item == value {
+            return true
+        }
+    }
+    return false
+}
+
+func sh(cmd) {
+    return execute_status(cmd)
+}
+
+# write_file refuses to overwrite an existing path on this runtime, so replace.
+func put(path, content) {
+    if file_exists(path) {
+        delete_file(path)
+    }
+    write_file(path, content)
+}
+
+WORK := join_path(env_or("TMPDIR", "/tmp"), "changebudget_selftest")
+REPO := join_path(WORK, "repo")
+PLAIN := join_path(WORK, "plain")
+
+mut C1 := ""
+
+func setup() {
+    sh("rm -rf " + WORK)
+    create_dir(WORK)
+    create_dir(PLAIN)
+    create_dir(REPO)
+    create_dir(join_path(REPO, "src"))
+    create_dir(join_path(REPO, "docs"))
+    sh("git -C " + REPO + " init -q")
+    sh("git -C " + REPO + " config user.email t@t.com")
+    sh("git -C " + REPO + " config user.name test")
+    # initial commit
+    put(join_path(REPO, "src/app.js"), "a\nb\nc\n")
+    put(join_path(REPO, "src/old.js"), "x\ny\n")
+    put(join_path(REPO, "package.json"), "{\"name\":\"x\"}\n")
+    put(join_path(REPO, "Cargo.lock"), "locked\n")
+    sh("git -C " + REPO + " add -A")
+    sh("git -C " + REPO + " commit -qm init")
+    r := sh("git -C " + REPO + " rev-parse HEAD")
+    C1 = trim(r.stdout)
+    # worktree changes:
+    #   app.js modified (+2), old.js deleted (-2), package.json modified (+1),
+    #   Cargo.lock modified (+1), docs/guide.md added (+1), image.png added (binary)
+    put(join_path(REPO, "src/app.js"), "a\nb\nc\nd\ne\n")
+    sh("rm " + join_path(REPO, "src/old.js"))
+    put(join_path(REPO, "package.json"), "{\"name\":\"x\",\"v\":2}\n")
+    put(join_path(REPO, "Cargo.lock"), "locked\nmore\n")
+    put(join_path(REPO, "docs/guide.md"), "# Guide\n")
+    put(join_path(REPO, "image.png"), "pretend-binary\n")
+}
+
+func teardown() {
+    sh("rm -rf " + WORK)
+}
+
+# --- classification (pure) ---------------------------------------------
+func test_classify() {
+    check(has(classify("src/app.ts"), "source"), "ts under src is source")
+    check(has(classify("packages/core/index.rs"), "source"), "rs is source")
+    check(has(classify("tests/foo.test.js"), "tests"), "*.test.js is tests")
+    check(has(classify("tests/foo.test.js"), "source") == false, "test file not also source")
+    check(has(classify("src/widget_test.go"), "tests"), "_test.go is tests")
+    check(has(classify("README.md"), "docs"), "README is docs")
+    check(has(classify("docs/guide.mdx"), "docs"), "docs/ mdx is docs")
+    check(has(classify("LICENSE"), "docs"), "LICENSE is docs")
+    check(has(classify("package.json"), "config"), "package.json is config")
+    check(has(classify("package.json"), "dependency_manifests"), "package.json is dependency manifest")
+    check(has(classify("Cargo.toml"), "dependency_manifests"), "Cargo.toml is dependency manifest")
+    check(has(classify("requirements-dev.txt"), "dependency_manifests"), "requirements*.txt is manifest")
+    check(has(classify("pnpm-lock.yaml"), "lockfiles"), "pnpm-lock is lockfile")
+    check(has(classify("Cargo.lock"), "lockfiles"), "Cargo.lock is lockfile")
+    check(has(classify(".github/workflows/ci.yml"), "ci"), "workflow is ci")
+    check(has(classify("dist/bundle.js"), "generated"), "dist/ is generated")
+    check(has(classify("app/main.min.js"), "generated"), "*.min.js is generated")
+    check(has(classify("scripts/deploy.sh"), "scripts"), "scripts/ sh is scripts")
+    check(has(classify("vite.config.ts"), "config"), "vite.config is config")
+    check(has(classify("mystery.xyz"), "other"), "unknown is other")
+}
+
+# --- risk heuristic (pure) ---------------------------------------------
+func test_risk() {
+    check_eq(risk_level(3, 100, 0, 0, 0, 0, 0), "low", "small clean edit is low")
+    check_eq(risk_level(10, 500, 0, 1, 1, 0, 0), "medium", "dep+lock mid-size is medium")
+    check_eq(risk_level(30, 100, 0, 0, 0, 0, 0), "high", "many files is high")
+    check_eq(risk_level(2, 2000, 0, 0, 0, 0, 0), "high", "huge churn is high")
+    check_eq(risk_level(2, 50, 1, 0, 0, 0, 0), "high", "any delete is high")
+    check_eq(risk_level(4, 150, 0, 0, 0, 1, 0), "high", "generated touched is high")
+    check_eq(risk_level(8, 300, 0, 0, 0, 0, 1), "medium", "ci alone is medium not low")
+}
+
+# --- analyze over a real worktree --------------------------------------
+func test_analyze_worktree() {
+    m := analyze(REPO, null, null)
+    s := m["summary"]
+    check_eq(s["files_changed"], 6, "six files changed in worktree")
+    check_eq(s["files_deleted"], 1, "one deleted file")
+    check_eq(s["files_added"], 2, "two added files (guide + image)")
+    check_eq(s["files_modified"], 3, "three modified files")
+    check_eq(s["lines_added"], 5, "lines added summed")
+    # old.js delete (-2) plus package.json's single-line replacement (-1) = 3
+    check_eq(s["lines_deleted"], 3, "lines deleted summed")
+    check_eq(s["total_churn"], 8, "churn is add+del")
+    check_eq(s["binary_files"], 1, "image.png counted as binary")
+    check_eq(s["risk_level"], "high", "delete forces high risk")
+    cats := m["categories"]
+    check_eq(len(cats["source"]), 2, "two source files (app.js, old.js)")
+    check_eq(len(cats["docs"]), 1, "one docs file")
+    check_eq(len(cats["lockfiles"]), 1, "one lockfile")
+    check_eq(len(cats["dependency_manifests"]), 1, "one dependency manifest")
+    check_eq(len(cats["other"]), 1, "image.png is other")
+    check_eq(m["head"], "working tree", "head labelled working tree")
+}
+
+# --- analyze a commit range --------------------------------------------
+func test_analyze_range() {
+    sh("git -C " + REPO + " add -A")
+    sh("git -C " + REPO + " commit -qm change")
+    r := sh("git -C " + REPO + " rev-parse HEAD")
+    c2 := trim(r.stdout)
+    m := analyze(REPO, C1, c2)
+    s := m["summary"]
+    check(s["files_changed"] >= 5, "range sees the committed changes")
+    check_eq(m["head"], c2, "range head label is the head sha")
+    check(s["files_deleted"] >= 1, "range still detects the delete")
+}
+
+# --- budget checks ------------------------------------------------------
+func test_budget() {
+    m := analyze(REPO, null, null)
+
+    tight := empty_config()
+    tight["max_files"] := 3
+    e1 := evaluate(m, tight)
+    check_eq(e1["budget"]["passed"], false, "max-files 3 fails for 6 files")
+    check(len(e1["budget"]["failures"]) >= 1, "failure reason recorded")
+
+    loose := empty_config()
+    loose["max_files"] := 100
+    loose["max_churn"] := 1000
+    e2 := evaluate(m, loose)
+    check_eq(e2["budget"]["passed"], true, "generous budget passes")
+
+    nodel := empty_config()
+    nodel["no_deletes"] := true
+    e3 := evaluate(m, nodel)
+    check_eq(e3["budget"]["passed"], false, "no-deletes fails when a file is deleted")
+
+    nolock := empty_config()
+    nolock["no_lockfile_changes"] := true
+    e4 := evaluate(m, nolock)
+    check_eq(e4["budget"]["passed"], false, "no-lockfile-changes fails on Cargo.lock")
+
+    check(has_constraints(loose) == true, "has_constraints true when limits set")
+    check(has_constraints(empty_config()) == false, "has_constraints false for empty config")
+}
+
+# --- JSON output --------------------------------------------------------
+func test_json() {
+    m := analyze(REPO, null, null)
+    j := to_json_pretty(m)
+    parsed := parse_json(j)
+    check(type(parsed) == "dict", "model serializes to a JSON object")
+    check(has_key(parsed, "summary") == 1, "json has summary")
+    check(has_key(parsed, "categories") == 1, "json has categories")
+    check(has_key(parsed, "files") == 1, "json has files array")
+}
+
+# --- markdown + text output --------------------------------------------
+func test_render() {
+    m := analyze(REPO, null, null)
+    cfg := empty_config()
+    cfg["max_files"] := 3
+    e := evaluate(m, cfg)
+    md := render_markdown(e, cfg, true)
+    check(contains(md, "# ChangeBudget Report") == 1, "markdown has title")
+    check(contains(md, "## Summary") == 1, "markdown has summary section")
+    check(contains(md, "## File Categories") == 1, "markdown has categories section")
+    check(contains(md, "## Largest Changes") == 1, "markdown has largest changes")
+    check(contains(md, "Budget Result") == 1, "markdown shows budget result when checked")
+    txt := render_text(e, cfg, true)
+    check(contains(txt, "ChangeBudget") == 1, "text report has header")
+    check(contains(txt, "Risk level:") == 1, "text report shows risk")
+    check(contains(txt, "Result: budget exceeded") == 1, "text report shows budget failure")
+}
+
+# --- non-git directory --------------------------------------------------
+func test_non_git() {
+    m := analyze(PLAIN, null, null)
+    check(type(m) == "dict", "non-git returns a dict")
+    check(has_key(m, "error") == 1, "non-git directory reports an error")
+}
+
+# --- util ---------------------------------------------------------------
+func test_util() {
+    check_eq(commas(1280), "1,280", "commas groups thousands")
+    check_eq(commas(508), "508", "commas leaves small numbers")
+    check_eq(commas(1000000), "1,000,000", "commas groups millions")
+    check_eq(commas(0), "0", "commas handles zero")
+}
+
+# --- run all ------------------------------------------------------------
+setup()
+test_classify()
+test_risk()
+test_util()
+test_analyze_worktree()
+test_budget()
+test_json()
+test_render()
+test_analyze_range()
+test_non_git()
+teardown()
+
+print("")
+print("ChangeBudget tests: ${passed} passed, ${failed} failed")
+if failed > 0 {
+    exit(1)
+}
+exit(0)

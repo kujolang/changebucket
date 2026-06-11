@@ -1,0 +1,221 @@
+# ChangeBudget :: cli
+#
+# Argument parsing and command dispatch. This is the only module that prints
+# user-facing output and chooses the process exit code. It wires together
+# analyze / budget / render.
+#
+# Exit code convention:
+#   0  success, or analysis printed (default command always exits 0)
+#   1  operational failure (not a git repo), OR a `check` whose budget failed
+#   2  usage error (unknown command)
+
+from src.analyze import analyze
+from src.budget import empty_config, has_constraints, evaluate
+from src.render import render_text, render_markdown
+
+VERSION := "1.0.0"
+
+# --- argument parsing ---------------------------------------------------
+
+# Split tokens into positionals and flags. Names in `bool_flags` are valueless
+# switches; every other `--flag` consumes the next token as its value.
+func parse_args(tokens, bool_flags) {
+    mut positionals := []
+    mut flags := {}
+    mut i := 0
+    n := len(tokens)
+    while i < n {
+        tok := tokens[i]
+        if starts_with(tok, "--") {
+            key := substring(tok, 2, len(tok))
+            if includes(bool_flags, key) {
+                flags[key] := true
+            } else {
+                if i + 1 < n {
+                    flags[key] := tokens[i + 1]
+                    i = i + 1
+                } else {
+                    flags[key] := ""
+                }
+            }
+        } else {
+            positionals = push(positionals, tok)
+        }
+        i = i + 1
+    }
+    return {"positionals": positionals, "flags": flags}
+}
+
+func includes(arr, value) {
+    for item in arr {
+        if item == value {
+            return true
+        }
+    }
+    return false
+}
+
+func flag(parsed, name) {
+    if has_key(parsed["flags"], name) == 1 {
+        return parsed["flags"][name]
+    }
+    return null
+}
+
+func flag_or(parsed, name, fallback) {
+    v := flag(parsed, name)
+    if type(v) == "null" {
+        return fallback
+    }
+    return v
+}
+
+func has_flag(parsed, name) {
+    return has_key(parsed["flags"], name) == 1
+}
+
+# The set of valueless boolean flags ChangeBudget understands.
+func bool_flags() {
+    return ["json", "markdown", "no-deletes", "no-dependency-changes", "no-lockfile-changes", "no-config-changes", "no-generated-changes"]
+}
+
+# Read an integer flag (null when absent or empty).
+func int_flag(parsed, name) {
+    v := flag(parsed, name)
+    if type(v) == "null" || v == "" {
+        return null
+    }
+    return parse_int(v)
+}
+
+# Build a budget config from parsed flags.
+func build_config(parsed) {
+    cfg := empty_config()
+    cfg["max_files"] := int_flag(parsed, "max-files")
+    cfg["max_churn"] := int_flag(parsed, "max-churn")
+    cfg["max_additions"] := int_flag(parsed, "max-additions")
+    cfg["max_deletions"] := int_flag(parsed, "max-deletions")
+    cfg["no_deletes"] := has_flag(parsed, "no-deletes")
+    cfg["no_dependency_changes"] := has_flag(parsed, "no-dependency-changes")
+    cfg["no_lockfile_changes"] := has_flag(parsed, "no-lockfile-changes")
+    cfg["no_config_changes"] := has_flag(parsed, "no-config-changes")
+    cfg["no_generated_changes"] := has_flag(parsed, "no-generated-changes")
+    return cfg
+}
+
+# --- the one real command ----------------------------------------------
+
+# Run analysis and emit output. `is_check` decides whether a failed budget
+# turns into a non-zero exit code.
+func run(parsed, is_check) {
+    repo := flag_or(parsed, "repo", ".")
+    base := flag(parsed, "base")
+    head := flag(parsed, "head")
+
+    model := analyze(repo, base, head)
+    if type(model) == "dict" && has_key(model, "error") == 1 {
+        print("error: " + model["error"])
+        return 1
+    }
+
+    cfg := build_config(parsed)
+    show_budget := is_check || has_constraints(cfg)
+    mut m := model
+    if show_budget {
+        m = evaluate(m, cfg)
+    }
+
+    mut code := 0
+    if is_check && has_key(m, "budget") == 1 && m["budget"]["checked"] == true && m["budget"]["passed"] == false {
+        code = 1
+    }
+
+    if has_flag(parsed, "json") {
+        print(to_json_pretty(m))
+        return code
+    }
+
+    output := flag(parsed, "output")
+    wants_md := has_flag(parsed, "markdown") || (type(output) != "null" && output != "")
+    if wants_md {
+        md := render_markdown(m, cfg, show_budget)
+        if type(output) != "null" && output != "" {
+            if file_exists(output) {
+                delete_file(output)
+            }
+            write_file(output, md)
+            print("Wrote report to " + output)
+            return code
+        }
+        print(md)
+        return code
+    }
+
+    print(render_text(m, cfg, show_budget))
+    return code
+}
+
+# --- help / dispatch ----------------------------------------------------
+
+func print_help() {
+    print("changebudget " + VERSION + " — measure the footprint of a code change")
+    print("")
+    print("Usage:")
+    print("  changebudget [options]            Analyze the working tree against HEAD")
+    print("  changebudget check [budget opts]  Analyze and enforce a budget (non-zero exit on fail)")
+    print("")
+    print("Range options:")
+    print("  --base <ref>      Compare against this ref (default HEAD)")
+    print("  --head <ref>      Compare a commit range base..head (no working tree)")
+    print("  --repo <path>     Repository to analyze (default current directory)")
+    print("")
+    print("Output options:")
+    print("  --json            Emit machine-readable JSON only")
+    print("  --markdown        Emit a markdown report")
+    print("  --output <file>   Write a markdown report to a file")
+    print("")
+    print("Budget options (informational on the default command; enforced under `check`):")
+    print("  --max-files <n>")
+    print("  --max-churn <n>")
+    print("  --max-additions <n>")
+    print("  --max-deletions <n>")
+    print("  --no-deletes")
+    print("  --no-dependency-changes")
+    print("  --no-lockfile-changes")
+    print("  --no-config-changes")
+    print("  --no-generated-changes")
+    print("")
+    print("  help, --help      Show this help")
+    print("  version           Show version")
+    print("")
+    print("ChangeBudget uses read-only git commands and never modifies your repo.")
+}
+
+# Entry point. `argv` is the user argument list (args()).
+export func main(argv) {
+    if len(argv) == 0 {
+        return run(parse_args([], bool_flags()), false)
+    }
+
+    cmd := argv[0]
+
+    if cmd == "help" || cmd == "--help" || cmd == "-h" {
+        print_help()
+        return 0
+    }
+    if cmd == "version" || cmd == "--version" || cmd == "-V" {
+        print("changebudget " + VERSION)
+        return 0
+    }
+    if cmd == "check" {
+        rest := slice(argv, 1, len(argv))
+        return run(parse_args(rest, bool_flags()), true)
+    }
+    if starts_with(cmd, "-") {
+        return run(parse_args(argv, bool_flags()), false)
+    }
+
+    print("error: unknown command '" + cmd + "'")
+    print("Run 'changebudget help' for usage.")
+    return 2
+}
