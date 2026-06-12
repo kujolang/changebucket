@@ -12,6 +12,7 @@
 from src.analyze import analyze
 from src.budget import empty_config, has_constraints, evaluate
 from src.render import render_text, render_markdown
+from src.util import includes
 
 VERSION := "1.0.0"
 
@@ -44,15 +45,6 @@ func parse_args(tokens, bool_flags) {
         i = i + 1
     }
     return {"positionals": positionals, "flags": flags}
-}
-
-func includes(arr, value) {
-    for item in arr {
-        if item == value {
-            return true
-        }
-    }
-    return false
 }
 
 func flag(parsed, name) {
@@ -157,38 +149,48 @@ func run(parsed, is_check) {
 
 # --- help / dispatch ----------------------------------------------------
 
+func print_lines(lines) {
+    mut i := 0
+    while i < len(lines) {
+        print(lines[i])
+        i = i + 1
+    }
+}
+
 func print_help() {
-    print("changebudget " + VERSION + " — measure the footprint of a code change")
-    print("")
-    print("Usage:")
-    print("  changebudget [options]            Analyze the working tree against HEAD")
-    print("  changebudget check [budget opts]  Analyze and enforce a budget (non-zero exit on fail)")
-    print("")
-    print("Range options:")
-    print("  --base <ref>      Compare against this ref (default HEAD)")
-    print("  --head <ref>      Compare a commit range base..head (no working tree)")
-    print("  --repo <path>     Repository to analyze (default current directory)")
-    print("")
-    print("Output options:")
-    print("  --json            Emit machine-readable JSON only")
-    print("  --markdown        Emit a markdown report")
-    print("  --output <file>   Write a markdown report to a file")
-    print("")
-    print("Budget options (informational on the default command; enforced under `check`):")
-    print("  --max-files <n>")
-    print("  --max-churn <n>")
-    print("  --max-additions <n>")
-    print("  --max-deletions <n>")
-    print("  --no-deletes")
-    print("  --no-dependency-changes")
-    print("  --no-lockfile-changes")
-    print("  --no-config-changes")
-    print("  --no-generated-changes")
-    print("")
-    print("  help, --help      Show this help")
-    print("  version           Show version")
-    print("")
-    print("ChangeBudget uses read-only git commands and never modifies your repo.")
+    print_lines([
+        "changebudget " + VERSION + " — measure the footprint of a code change",
+        "",
+        "Usage:",
+        "  changebudget [options]            Analyze the working tree against HEAD",
+        "  changebudget check [budget opts]  Analyze and enforce a budget (non-zero exit on fail)",
+        "",
+        "Range options:",
+        "  --base <ref>      Compare against this ref (default HEAD)",
+        "  --head <ref>      Compare a commit range base..head (no working tree)",
+        "  --repo <path>     Repository to analyze (default current directory)",
+        "",
+        "Output options:",
+        "  --json            Emit machine-readable JSON only",
+        "  --markdown        Emit a markdown report",
+        "  --output <file>   Write a markdown report to a file",
+        "",
+        "Budget options (informational on the default command; enforced under `check`):",
+        "  --max-files <n>",
+        "  --max-churn <n>",
+        "  --max-additions <n>",
+        "  --max-deletions <n>",
+        "  --no-deletes",
+        "  --no-dependency-changes",
+        "  --no-lockfile-changes",
+        "  --no-config-changes",
+        "  --no-generated-changes",
+        "",
+        "  help, --help      Show this help",
+        "  version           Show version",
+        "",
+        "ChangeBudget uses read-only git commands and never modifies your repo."
+    ])
 }
 
 # Entry point. `argv` is the user argument list (args()).

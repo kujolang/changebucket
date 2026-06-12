@@ -8,7 +8,7 @@ at a glance:
 - What *kinds* of files changed? (source, tests, docs, config, dependencies, lockfiles, generated, CI, scripts)
 - Did it touch dependencies or lockfiles?
 - Did it delete files? Touch generated or CI files?
-- Did it stay within the change budget I expected?
+- Did it stay within the footprint budget I expected?
 - Is this a tiny edit, a medium edit, or a large blast-radius change?
 
 It produces structured metrics and a clear report — a human-readable summary,
@@ -26,17 +26,25 @@ ChangeBudget measures a change footprint. It is deliberately narrow. It is **not
 RunLedger records agent *runs*. PatchBrief explains what changed in a diff.
 ChangeBudget measures the footprint — counts and categories, not meaning.
 
-## Installation
+## Quick start
 
 ChangeBudget is a small CLI written in the Kujo language. It needs the `kujo`
 runtime and `git` on your `PATH`. No network, no API keys, no build step.
 
 ```bash
-# Run via the launcher (recommended). Point KUJO at your Kujo runtime:
+# Point KUJO at your Kujo runtime, then run the launcher:
 KUJO=/path/to/kujo/target/release/kujo ./bin/changebudget --help
 
-# Or put the Kujo runtime on your PATH and just:
+# Or put the Kujo runtime on PATH and just:
 ./bin/changebudget --help
+```
+
+Expected output starts with:
+
+```text
+changebudget 1.0.0 — measure the footprint of a code change
+
+Usage:
 ```
 
 For convenience, symlink `bin/changebudget` somewhere on your `PATH`.
@@ -121,7 +129,7 @@ buckets (e.g. `package.json` is both **config** and a **dependency manifest**).
 
 | Category | Matches (examples) |
 |---|---|
-| **source** | source extensions (`.js .ts .tsx .py .rs .go .php .rb .java .c .cpp .h .kujo .kujo` etc.); excludes test/docs files |
+| **source** | source extensions (`.js .ts .tsx .py .rs .go .php .rb .java .c .cpp .h .kujo` etc.); excludes test/docs files |
 | **tests** | `test/` `tests/` `__tests__/` `spec/`, `*.test.*`, `*.spec.*`, `test_*`, `*_test.go/py/rs`, `*_spec.rb` |
 | **docs** | `*.md` `*.mdx` `*.rst`, `docs/`, `README*` `CHANGELOG*` `LICENSE*` `CONTRIBUTING*` |
 | **config** | `package.json` `tsconfig.json` `pyproject.toml` `Cargo.toml` `kujo.toml` `.editorconfig`, `*.config.*`, `vite/rollup/webpack/eslint/tailwind/...` configs, `*.toml/.ini/.cfg/.conf`, `.env*`, `Dockerfile` `Makefile` |
@@ -207,8 +215,10 @@ A file may appear in more than one category list, so category counts can overlap
 ## Markdown report
 
 See [`examples/CHANGE_BUDGET.example.md`](examples/CHANGE_BUDGET.example.md) for a
-full generated report. The structure is: title, summary table, budget result
-(when a budget was checked), file-category counts, and the largest changes by churn.
+full generated report. Treat that file as output documentation, not as a
+hand-authored example style guide; update it only when the markdown report
+contract changes. The structure is: title, summary table, budget result (when a
+budget was checked), file-category counts, and the largest changes by churn.
 
 ## Exit codes
 

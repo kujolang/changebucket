@@ -11,9 +11,28 @@ It is read-only over git and is meant to be run right after an AI agent edits a
 repo. It is a sibling of RunLedger (`/path/to/runledger`) and
 follows the same structure and conventions.
 
+## Canonical examples and search hygiene
+
+- Canonical user-facing examples live in `README.md` and the help text in
+  `src/cli.kujo`.
+- Canonical output contracts live in `src/render.kujo`, the exact render tests in
+  `tests/changebudget_test.kujo`, and the generated markdown sample at
+  `examples/CHANGE_BUDGET.example.md`.
+- Treat `examples/CHANGE_BUDGET.example.md` as generated output documentation,
+  not as a style source for hand-written Kujo.
+- Tests are behavior contracts first. Do not shorten fixtures when explicit
+  output helps make the contract obvious.
+- Start broad searches with `rg --files` and then target noisy patterns with
+  `rg -n`. Exclude generated output from readability sweeps unless changing the
+  report contract, for example:
+
+```bash
+rg -n "pattern" -g '!examples/CHANGE_BUDGET.example.md'
+```
+
 ## Current status
 
-Complete and working as of 2026-06-10. All 70 tests pass; every source file
+Complete and working as of 2026-06-12. All 72 tests pass; every source file
 passes the checker. v1.0.0.
 
 ## First files to read (in order)
@@ -62,7 +81,6 @@ src/cli.kujo                   parse_args, build_config, run, main
 tests/changebudget_test.kujo   hand-rolled, filesystem-isolated suite
 tests/run.sh                   test runner
 examples/CHANGE_BUDGET.example.md   a real generated markdown report
-docs/session-notes.md          dated build notes / gotchas / decisions
 ```
 
 ## Architecture overview
@@ -130,7 +148,7 @@ changebudget check --max-files N --max-churn N \
 ## Verification checklist
 
 - [ ] `for f in changebudget.kujo src/*.kujo tests/*.kujo; do $KUJO check "$f"; done` all pass
-- [ ] `./tests/run.sh` → "70 passed, 0 failed"
+- [ ] `./tests/run.sh` → "72 passed, 0 failed"
 - [ ] `$KUJO run changebudget.kujo -- --help` prints help
 - [ ] worktree analysis in a temp repo (default, `--json`, `--markdown`)
 - [ ] `check --max-files 1` in a multi-file change exits non-zero
@@ -148,5 +166,5 @@ changebudget check --max-files N --max-churn N \
 
 ## Session notes
 
-See [`docs/session-notes.md`](docs/session-notes.md) for the dated build log,
-decisions, and tradeoffs.
+No dated session-notes file is currently checked in. Use this guide, the README,
+and git history as the source of truth.

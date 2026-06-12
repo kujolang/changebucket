@@ -10,33 +10,25 @@ from src.util import commas, pad_right
 from src.classify import category_order
 
 # Friendly label for a category key.
+func category_labels() {
+    return {
+        "source": "Source",
+        "tests": "Tests",
+        "docs": "Docs",
+        "config": "Config",
+        "dependency_manifests": "Dependency manifests",
+        "lockfiles": "Lockfiles",
+        "generated": "Generated",
+        "ci": "CI",
+        "scripts": "Scripts",
+        "other": "Other"
+    }
+}
+
 func cat_label(key) {
-    if key == "dependency_manifests" {
-        return "Dependency manifests"
-    }
-    if key == "lockfiles" {
-        return "Lockfiles"
-    }
-    if key == "ci" {
-        return "CI"
-    }
-    if key == "source" {
-        return "Source"
-    }
-    if key == "tests" {
-        return "Tests"
-    }
-    if key == "docs" {
-        return "Docs"
-    }
-    if key == "config" {
-        return "Config"
-    }
-    if key == "generated" {
-        return "Generated"
-    }
-    if key == "scripts" {
-        return "Scripts"
+    labels := category_labels()
+    if has_key(labels, key) == 1 {
+        return labels[key]
     }
     return "Other"
 }
@@ -46,6 +38,16 @@ func mark(ok) {
         return "PASS"
     }
     return "FAIL"
+}
+
+func append_lines(out, lines) {
+    mut next := out
+    mut i := 0
+    while i < len(lines) {
+        next = push(next, lines[i])
+        i = i + 1
+    }
+    return next
 }
 
 # Files sorted by churn descending, truncated to `n`. A copy is sorted in place
@@ -83,6 +85,60 @@ export func top_by_churn(files, n) {
     return out
 }
 
+func metric_value(summary, key) {
+    if key == "risk_level" {
+        return summary[key]
+    }
+    return commas(summary[key])
+}
+
+func summary_rows(summary, specs) {
+    mut rows := []
+    mut i := 0
+    while i < len(specs) {
+        spec := specs[i]
+        rows = push(rows, [spec[0], metric_value(summary, spec[1])])
+        i = i + 1
+    }
+    return rows
+}
+
+func text_summary_specs() {
+    return [
+        ["Files changed", "files_changed"],
+        ["Lines added", "lines_added"],
+        ["Lines deleted", "lines_deleted"],
+        ["Total line churn", "total_churn"],
+        ["Files added", "files_added"],
+        ["Files modified", "files_modified"],
+        ["Files deleted", "files_deleted"],
+        ["Binary files", "binary_files"],
+        ["Risk level", "risk_level"]
+    ]
+}
+
+func markdown_summary_specs() {
+    return [
+        ["Files changed", "files_changed"],
+        ["Files added", "files_added"],
+        ["Files modified", "files_modified"],
+        ["Files deleted", "files_deleted"],
+        ["Binary files", "binary_files"],
+        ["Lines added", "lines_added"],
+        ["Lines deleted", "lines_deleted"],
+        ["Total churn", "total_churn"],
+        ["Risk level", "risk_level"]
+    ]
+}
+
+func budget_limit_line(label, limit, actual, ok) {
+    return "- " + label + ": " + commas(limit) + " [" + mark(ok) + "] (actual " + commas(actual) + ")"
+}
+
+func budget_ban_line(label, ok) {
+    return "- " + label + " allowed: no [" + mark(ok) + "]"
+}
+
 # Budget lines for the text report, derived from the config so each configured
 # constraint shows its limit and a PASS/FAIL marker.
 func budget_text_lines(model, cfg) {
@@ -90,31 +146,31 @@ func budget_text_lines(model, cfg) {
     cats := model["categories"]
     mut lines := []
     if type(cfg["max_files"]) != "null" {
-        lines = push(lines, "- Max files: " + commas(cfg["max_files"]) + " [" + mark(s["files_changed"] <= cfg["max_files"]) + "] (actual " + commas(s["files_changed"]) + ")")
+        lines = push(lines, budget_limit_line("Max files", cfg["max_files"], s["files_changed"], s["files_changed"] <= cfg["max_files"]))
     }
     if type(cfg["max_churn"]) != "null" {
-        lines = push(lines, "- Max churn: " + commas(cfg["max_churn"]) + " [" + mark(s["total_churn"] <= cfg["max_churn"]) + "] (actual " + commas(s["total_churn"]) + ")")
+        lines = push(lines, budget_limit_line("Max churn", cfg["max_churn"], s["total_churn"], s["total_churn"] <= cfg["max_churn"]))
     }
     if type(cfg["max_additions"]) != "null" {
-        lines = push(lines, "- Max additions: " + commas(cfg["max_additions"]) + " [" + mark(s["lines_added"] <= cfg["max_additions"]) + "] (actual " + commas(s["lines_added"]) + ")")
+        lines = push(lines, budget_limit_line("Max additions", cfg["max_additions"], s["lines_added"], s["lines_added"] <= cfg["max_additions"]))
     }
     if type(cfg["max_deletions"]) != "null" {
-        lines = push(lines, "- Max deletions: " + commas(cfg["max_deletions"]) + " [" + mark(s["lines_deleted"] <= cfg["max_deletions"]) + "] (actual " + commas(s["lines_deleted"]) + ")")
+        lines = push(lines, budget_limit_line("Max deletions", cfg["max_deletions"], s["lines_deleted"], s["lines_deleted"] <= cfg["max_deletions"]))
     }
     if cfg["no_deletes"] == true {
-        lines = push(lines, "- Deletes allowed: no [" + mark(s["files_deleted"] == 0) + "]")
+        lines = push(lines, budget_ban_line("Deletes", s["files_deleted"] == 0))
     }
     if cfg["no_dependency_changes"] == true {
-        lines = push(lines, "- Dependency changes allowed: no [" + mark(len(cats["dependency_manifests"]) == 0) + "]")
+        lines = push(lines, budget_ban_line("Dependency changes", len(cats["dependency_manifests"]) == 0))
     }
     if cfg["no_lockfile_changes"] == true {
-        lines = push(lines, "- Lockfile changes allowed: no [" + mark(len(cats["lockfiles"]) == 0) + "]")
+        lines = push(lines, budget_ban_line("Lockfile changes", len(cats["lockfiles"]) == 0))
     }
     if cfg["no_config_changes"] == true {
-        lines = push(lines, "- Config changes allowed: no [" + mark(len(cats["config"]) == 0) + "]")
+        lines = push(lines, budget_ban_line("Config changes", len(cats["config"]) == 0))
     }
     if cfg["no_generated_changes"] == true {
-        lines = push(lines, "- Generated changes allowed: no [" + mark(len(cats["generated"]) == 0) + "]")
+        lines = push(lines, budget_ban_line("Generated changes", len(cats["generated"]) == 0))
     }
     return lines
 }
@@ -130,15 +186,13 @@ export func render_text(model, cfg, show_budget) {
     out = push(out, "Head: " + model["head"])
     out = push(out, "")
     out = push(out, "Summary:")
-    out = push(out, "- Files changed: " + commas(s["files_changed"]))
-    out = push(out, "- Lines added: " + commas(s["lines_added"]))
-    out = push(out, "- Lines deleted: " + commas(s["lines_deleted"]))
-    out = push(out, "- Total line churn: " + commas(s["total_churn"]))
-    out = push(out, "- Files added: " + commas(s["files_added"]))
-    out = push(out, "- Files modified: " + commas(s["files_modified"]))
-    out = push(out, "- Files deleted: " + commas(s["files_deleted"]))
-    out = push(out, "- Binary files: " + commas(s["binary_files"]))
-    out = push(out, "- Risk level: " + s["risk_level"])
+    summary := summary_rows(s, text_summary_specs())
+    mut si := 0
+    while si < len(summary) {
+        row := summary[si]
+        out = push(out, "- " + row[0] + ": " + row[1])
+        si = si + 1
+    }
     out = push(out, "")
     out = push(out, "Categories:")
     order := category_order()
@@ -171,11 +225,7 @@ export func render_text(model, cfg, show_budget) {
         if len(blines) == 0 {
             out = push(out, "- (no constraints set)")
         } else {
-            mut bi := 0
-            while bi < len(blines) {
-                out = push(out, blines[bi])
-                bi = bi + 1
-            }
+            out = append_lines(out, blines)
         }
         out = push(out, "")
         if model["budget"]["passed"] == true {
@@ -213,15 +263,13 @@ export func render_markdown(model, cfg, show_budget) {
     out = push(out, "")
     out = push(out, md_row(["Metric", "Value"]))
     out = push(out, md_row(["---", "---:"]))
-    out = push(out, md_row(["Files changed", commas(s["files_changed"])]))
-    out = push(out, md_row(["Files added", commas(s["files_added"])]))
-    out = push(out, md_row(["Files modified", commas(s["files_modified"])]))
-    out = push(out, md_row(["Files deleted", commas(s["files_deleted"])]))
-    out = push(out, md_row(["Binary files", commas(s["binary_files"])]))
-    out = push(out, md_row(["Lines added", commas(s["lines_added"])]))
-    out = push(out, md_row(["Lines deleted", commas(s["lines_deleted"])]))
-    out = push(out, md_row(["Total churn", commas(s["total_churn"])]))
-    out = push(out, md_row(["Risk level", s["risk_level"]]))
+    summary := summary_rows(s, markdown_summary_specs())
+    mut si := 0
+    while si < len(summary) {
+        row := summary[si]
+        out = push(out, md_row([row[0], row[1]]))
+        si = si + 1
+    }
     out = push(out, "")
 
     if show_budget && model["budget"]["checked"] == true {

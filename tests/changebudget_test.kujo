@@ -214,6 +214,113 @@ func test_json() {
 }
 
 # --- markdown + text output --------------------------------------------
+func sample_render_model() {
+    return {
+        "base": "HEAD",
+        "head": "working tree",
+        "generated_at": "2026-06-01T00:00:00Z",
+        "summary": {
+            "files_changed": 2,
+            "files_added": 1,
+            "files_modified": 1,
+            "files_deleted": 0,
+            "files_renamed": 0,
+            "binary_files": 0,
+            "lines_added": 11,
+            "lines_deleted": 1,
+            "total_churn": 12,
+            "risk_level": "low"
+        },
+        "categories": {
+            "source": ["src/app.js"],
+            "tests": [],
+            "docs": ["README.md"],
+            "config": [],
+            "dependency_manifests": [],
+            "lockfiles": [],
+            "generated": [],
+            "ci": [],
+            "scripts": [],
+            "other": []
+        },
+        "budget": {"checked": false, "passed": true, "failures": []},
+        "files": [
+            {"path": "src/app.js", "status": "modified", "additions": 10, "deletions": 1, "churn": 11, "binary": false, "categories": ["source"]},
+            {"path": "README.md", "status": "added", "additions": 1, "deletions": 0, "churn": 1, "binary": false, "categories": ["docs"]}
+        ]
+    }
+}
+
+func test_render_exact() {
+    m := sample_render_model()
+    cfg := empty_config()
+
+    expected_text := join([
+        "ChangeBudget",
+        "",
+        "Base: HEAD",
+        "Head: working tree",
+        "",
+        "Summary:",
+        "- Files changed: 2",
+        "- Lines added: 11",
+        "- Lines deleted: 1",
+        "- Total line churn: 12",
+        "- Files added: 1",
+        "- Files modified: 1",
+        "- Files deleted: 0",
+        "- Binary files: 0",
+        "- Risk level: low",
+        "",
+        "Categories:",
+        "- Source:               1",
+        "- Docs:                 1",
+        "",
+        "Largest changes:",
+        "- src/app.js (modified, +10 -1, churn 11)",
+        "- README.md (added, +1 -0, churn 1)"
+    ], "\n")
+    check_eq(render_text(m, cfg, false), expected_text, "text report exact output")
+
+    expected_md := join([
+        "# ChangeBudget Report",
+        "",
+        "Generated: 2026-06-01T00:00:00Z",
+        "",
+        "Base: `HEAD`  Head: `working tree`",
+        "",
+        "## Summary",
+        "",
+        "| Metric | Value |",
+        "| --- | ---: |",
+        "| Files changed | 2 |",
+        "| Files added | 1 |",
+        "| Files modified | 1 |",
+        "| Files deleted | 0 |",
+        "| Binary files | 0 |",
+        "| Lines added | 11 |",
+        "| Lines deleted | 1 |",
+        "| Total churn | 12 |",
+        "| Risk level | low |",
+        "",
+        "## File Categories",
+        "",
+        "| Category | Count |",
+        "| --- | ---: |",
+        "| Source | 1 |",
+        "| Docs | 1 |",
+        "",
+        "## Largest Changes",
+        "",
+        "| File | Status | + | - | Churn |",
+        "| --- | --- | ---: | ---: | ---: |",
+        "| `src/app.js` | modified | 10 | 1 | 11 |",
+        "| `README.md` | added | 1 | 0 | 1 |",
+        ""
+    ], "\n")
+    check_eq(render_markdown(m, cfg, false), expected_md, "markdown report exact output")
+}
+
 func test_render() {
     m := analyze(REPO, null, null)
     cfg := empty_config()
@@ -254,6 +361,7 @@ test_util()
 test_analyze_worktree()
 test_budget()
 test_json()
+test_render_exact()
 test_render()
 test_analyze_range()
 test_non_git()
