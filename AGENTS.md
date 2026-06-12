@@ -1,11 +1,11 @@
-# ChangeBudget — Agent Orientation Guide
+# ChangeBucket — Agent Orientation Guide
 
 Orientation for the next agent. The README is the user manual; this file is the
 map. Don't duplicate the README — read it, then read this.
 
 ## Purpose
 
-ChangeBudget is a small, standalone CLI that measures the **footprint** of a code
+ChangeBucket is a small, standalone CLI that measures the **footprint** of a code
 change (size, file categories, risk/blast-radius) and can **enforce a budget**.
 It is read-only over git and is meant to be run right after an AI agent edits a
 repo. It is a sibling of RunLedger (`/path/to/runledger`) and
@@ -16,9 +16,9 @@ follows the same structure and conventions.
 - Canonical user-facing examples live in `README.md` and the help text in
   `src/cli.kujo`.
 - Canonical output contracts live in `src/render.kujo`, the exact render tests in
-  `tests/changebudget_test.kujo`, and the generated markdown sample at
-  `examples/CHANGE_BUDGET.example.md`.
-- Treat `examples/CHANGE_BUDGET.example.md` as generated output documentation,
+  `tests/changebucket_test.kujo`, and the generated markdown sample at
+  `examples/CHANGE_BUCKET.example.md`.
+- Treat `examples/CHANGE_BUCKET.example.md` as generated output documentation,
   not as a style source for hand-written Kujo.
 - Tests are behavior contracts first. Do not shorten fixtures when explicit
   output helps make the contract obvious.
@@ -27,7 +27,7 @@ follows the same structure and conventions.
   report contract, for example:
 
 ```bash
-rg -n "pattern" -g '!examples/CHANGE_BUDGET.example.md'
+rg -n "pattern" -g '!examples/CHANGE_BUCKET.example.md'
 ```
 
 ## Current status
@@ -42,7 +42,7 @@ passes the checker. v1.0.0.
 3. `src/diffsrc.kujo` — the read-only git layer.
 4. `src/classify.kujo` — file → category rules.
 5. `src/cli.kujo` — argument parsing, dispatch, exit codes.
-6. `tests/changebudget_test.kujo` — what "correct" means.
+6. `tests/changebucket_test.kujo` — what "correct" means.
 
 ## Install / test / run
 
@@ -51,14 +51,14 @@ passes the checker. v1.0.0.
 export KUJO=/path/to/kujo/target/release/kujo
 
 # Run:
-$KUJO run changebudget.kujo -- --help
-./bin/changebudget --help          # if KUJO is exported or the runtime is on PATH
+$KUJO run changebucket.kujo -- --help
+./bin/changebucket --help          # if KUJO is exported or the runtime is on PATH
 
 # Test:
 ./tests/run.sh                     # honors $KUJO
 
 # Lint every module:
-for f in changebudget.kujo src/*.kujo tests/*.kujo; do $KUJO check "$f"; done
+for f in changebucket.kujo src/*.kujo tests/*.kujo; do $KUJO check "$f"; done
 ```
 
 There is **no build step** and **no package install**. `git` must be on `PATH`.
@@ -66,8 +66,8 @@ There is **no build step** and **no package install**. `git` must be on `PATH`.
 ## Repo map
 
 ```
-changebudget.kujo              entrypoint: from src.cli import main; exit(main(args()))
-bin/changebudget               bash launcher (KUJO env override)
+changebucket.kujo              entrypoint: from src.cli import main; exit(main(args()))
+bin/changebucket               bash launcher (KUJO env override)
 kujo.toml                      package metadata
 src/util.kujo                  iso_now, commas, pad_right, basename, includes, truthy
 src/diffsrc.kujo               READ-ONLY git: is_repo, head_commit, resolve_refs,
@@ -78,9 +78,9 @@ src/analyze.kujo               analyze(repo, base, head) -> model; risk_level(..
 src/budget.kujo                empty_config, has_constraints, evaluate(model, cfg)
 src/render.kujo                render_text, render_markdown, top_by_churn
 src/cli.kujo                   parse_args, build_config, run, main
-tests/changebudget_test.kujo   hand-rolled, filesystem-isolated suite
+tests/changebucket_test.kujo   hand-rolled, filesystem-isolated suite
 tests/run.sh                   test runner
-examples/CHANGE_BUDGET.example.md   a real generated markdown report
+examples/CHANGE_BUCKET.example.md   a real generated markdown report
 ```
 
 ## Architecture overview
@@ -108,13 +108,13 @@ between layers — see the JSON shape in the README.
 ## Command reference (for agents)
 
 ```bash
-changebudget                     # worktree vs HEAD, text report, exit 0
-changebudget --base main         # worktree vs main
-changebudget --base A --head B   # range A..B
-changebudget --json              # JSON only
-changebudget --markdown          # markdown to stdout
-changebudget --output FILE.md    # markdown to file
-changebudget check --max-files N --max-churn N \
+changebucket                     # worktree vs HEAD, text report, exit 0
+changebucket --base main         # worktree vs main
+changebucket --base A --head B   # range A..B
+changebucket --json              # JSON only
+changebucket --markdown          # markdown to stdout
+changebucket --output FILE.md    # markdown to file
+changebucket check --max-files N --max-churn N \
   --no-deletes --no-dependency-changes --no-lockfile-changes \
   --no-config-changes --no-generated-changes   # exit 1 if exceeded
 ```
@@ -147,9 +147,9 @@ changebudget check --max-files N --max-churn N \
 
 ## Verification checklist
 
-- [ ] `for f in changebudget.kujo src/*.kujo tests/*.kujo; do $KUJO check "$f"; done` all pass
+- [ ] `for f in changebucket.kujo src/*.kujo tests/*.kujo; do $KUJO check "$f"; done` all pass
 - [ ] `./tests/run.sh` → "72 passed, 0 failed"
-- [ ] `$KUJO run changebudget.kujo -- --help` prints help
+- [ ] `$KUJO run changebucket.kujo -- --help` prints help
 - [ ] worktree analysis in a temp repo (default, `--json`, `--markdown`)
 - [ ] `check --max-files 1` in a multi-file change exits non-zero
 - [ ] non-git directory prints `error: not a git repository` and exits 1
@@ -160,7 +160,7 @@ changebudget check --max-files N --max-churn N \
   Would need a numstat-equivalent parser; deferred.
 - Rename detection (currently `--no-renames`): could surface `files_renamed` with
   `-M`, at the cost of brace-path parsing in numstat.
-- Configurable category rules / budget profiles (e.g. a `.changebudget.toml`).
+- Configurable category rules / budget profiles (e.g. a `.changebucket.toml`).
   Resist building a plugin system until real usage demands it.
 - Per-directory or per-category churn breakdown.
 

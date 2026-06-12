@@ -1,6 +1,6 @@
-# ChangeBudget
+# ChangeBucket
 
-ChangeBudget measures the **size, shape, and risk footprint** of a code change.
+ChangeBucket measures the **size, shape, and risk footprint** of a code change.
 It is especially useful right after an AI agent modifies a repository, to answer
 at a glance:
 
@@ -15,67 +15,67 @@ It produces structured metrics and a clear report — a human-readable summary,
 JSON, or markdown. It is **read-only**: it only ever runs `git diff` /
 `git ls-files` / `git rev-parse` and never modifies your repository.
 
-## What ChangeBudget is *not*
+## What ChangeBucket is *not*
 
-ChangeBudget measures a change footprint. It is deliberately narrow. It is **not**:
+ChangeBucket measures a change footprint. It is deliberately narrow. It is **not**:
 
 - a code reviewer (it makes no judgements about correctness or quality),
 - a diff summarizer like **PatchBrief** (it never explains what the code means),
 - and it does not replace **Scout, ShipCheck, Trail, Eval, Spec, Concord, or RunLedger**.
 
 RunLedger records agent *runs*. PatchBrief explains what changed in a diff.
-ChangeBudget measures the footprint — counts and categories, not meaning.
+ChangeBucket measures the footprint — counts and categories, not meaning.
 
 ## Quick start
 
-ChangeBudget is a small CLI written in the Kujo language. It needs the `kujo`
+ChangeBucket is a small CLI written in the Kujo language. It needs the `kujo`
 runtime and `git` on your `PATH`. No network, no API keys, no build step.
 
 ```bash
 # Point KUJO at your Kujo runtime, then run the launcher:
-KUJO=/path/to/kujo/target/release/kujo ./bin/changebudget --help
+KUJO=/path/to/kujo/target/release/kujo ./bin/changebucket --help
 
 # Or put the Kujo runtime on PATH and just:
-./bin/changebudget --help
+./bin/changebucket --help
 ```
 
 Expected output starts with:
 
 ```text
-changebudget 1.0.0 — measure the footprint of a code change
+changebucket 1.0.0 — measure the footprint of a code change
 
 Usage:
 ```
 
-For convenience, symlink `bin/changebudget` somewhere on your `PATH`.
+For convenience, symlink `bin/changebucket` somewhere on your `PATH`.
 
 ## Usage
 
 ```bash
 # Analyze the working tree against HEAD (the default)
-changebudget
+changebucket
 
 # Compare the working tree against another ref
-changebudget --base main
+changebucket --base main
 
 # Compare a specific commit range (no working tree / untracked files)
-changebudget --base main --head HEAD
+changebucket --base main --head HEAD
 
 # Analyze a different repository
-changebudget --repo /path/to/repo
+changebucket --repo /path/to/repo
 
 # Machine-readable JSON (only JSON is printed)
-changebudget --json
+changebucket --json
 
 # Markdown report to stdout
-changebudget --markdown
+changebucket --markdown
 
 # Markdown report written to a file
-changebudget --output CHANGE_BUDGET.md
+changebucket --output CHANGE_BUCKET.md
 
 # Enforce a budget (non-zero exit if exceeded)
-changebudget check --max-files 20 --max-churn 800
-changebudget check --max-files 20 --max-churn 800 \
+changebucket check --max-files 20 --max-churn 800
+changebucket check --max-files 20 --max-churn 800 \
   --no-dependency-changes --no-lockfile-changes --no-deletes
 ```
 
@@ -83,10 +83,10 @@ changebudget check --max-files 20 --max-churn 800 \
 
 | Command | Behavior |
 |---|---|
-| `changebudget [options]` | Analyze and print a report. Always exits `0`. |
-| `changebudget check [budget options]` | Analyze and **enforce** a budget. Exits non-zero if exceeded. |
-| `changebudget help` / `changebudget --help` | Show usage. |
-| `changebudget version` / `changebudget --version` | Show version. |
+| `changebucket [options]` | Analyze and print a report. Always exits `0`. |
+| `changebucket check [budget options]` | Analyze and **enforce** a budget. Exits non-zero if exceeded. |
+| `changebucket help` / `changebucket --help` | Show usage. |
+| `changebucket version` / `changebucket --version` | Show version. |
 
 ### Options
 
@@ -111,7 +111,7 @@ changebudget check --max-files 20 --max-churn 800 \
 Budget options are **informational** on the default command (they show a Budget
 section but always exit `0`). They are **enforced** under `check`, which exits
 `1` when the budget is exceeded. Put `check` before the budget flags; the
-enforcement path is `changebudget check --max-files ...`, not `changebudget
+enforcement path is `changebucket check --max-files ...`, not `changebucket
 --max-files ... check`.
 
 ### Default vs working-tree vs range
@@ -214,7 +214,7 @@ A file may appear in more than one category list, so category counts can overlap
 
 ## Markdown report
 
-See [`examples/CHANGE_BUDGET.example.md`](examples/CHANGE_BUDGET.example.md) for a
+See [`examples/CHANGE_BUCKET.example.md`](examples/CHANGE_BUCKET.example.md) for a
 full generated report. Treat that file as output documentation, not as a
 hand-authored example style guide; update it only when the markdown report
 contract changes. The structure is: title, summary table, budget result (when a

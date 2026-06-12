@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
-# ChangeBudget launcher.
+# ChangeBucket launcher.
 #
-# Thin convenience wrapper so you can type `changebudget <args>` instead of
-# `kujo run /path/to/changebudget.kujo -- <args>`.
+# Thin convenience wrapper so you can type `changebucket <args>` instead of
+# `kujo run /path/to/changebucket.kujo -- <args>`.
 #
 # It runs the Kujo runtime on the project entrypoint, preserving your
 # current working directory (so analysis targets the repo you invoke it in).
 # Override the runtime with the KUJO environment variable, e.g.
-#   KUJO=/path/to/kujo/target/release/kujo changebudget --base main
+#   KUJO=/path/to/kujo/target/release/kujo changebucket --base main
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 KUJO="${KUJO:-kujo}"
 
 if ! command -v "$KUJO" >/dev/null 2>&1 && [ ! -x "$KUJO" ]; then
-  echo "changebudget: cannot find the Kujo runtime ('$KUJO')." >&2
+  echo "changebucket: cannot find the Kujo runtime ('$KUJO')." >&2
   echo "Set KUJO to your kujo binary, e.g. KUJO=/path/to/kujo/target/release/kujo" >&2
   exit 127
 fi
 
-exec "$KUJO" run "$PROJECT_DIR/changebudget.kujo" -- "$@"
+exec "$KUJO" run "$PROJECT_DIR/changebucket.kujo" -- "$@"

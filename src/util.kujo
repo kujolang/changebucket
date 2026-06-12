@@ -1,4 +1,4 @@
-# ChangeBudget :: util
+# ChangeBucket :: util
 #
 # Small, dependency-free helpers shared across the tool: timestamps, number
 # formatting, padding for tables, and tiny predicate helpers. Kept deliberately

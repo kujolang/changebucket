@@ -1,4 +1,4 @@
-# ChangeBudget :: diffsrc
+# ChangeBucket :: diffsrc
 #
 # The git interface. Everything here is READ-ONLY: it only ever runs
 # rev-parse / diff / ls-files. Nothing stages, commits, resets, cleans,

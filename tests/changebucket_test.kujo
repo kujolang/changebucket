@@ -1,4 +1,4 @@
-# ChangeBudget test suite.
+# ChangeBucket test suite.
 #
 # A self-contained, filesystem-isolated harness. It exercises the library
 # modules directly (the same functions the CLI delegates to), using throwaway
@@ -61,7 +61,7 @@ func put(path, content) {
     write_file(path, content)
 }
 
-WORK := join_path(env_or("TMPDIR", "/tmp"), "changebudget_selftest")
+WORK := join_path(env_or("TMPDIR", "/tmp"), "changebucket_selftest")
 REPO := join_path(WORK, "repo")
 PLAIN := join_path(WORK, "plain")
 
@@ -256,7 +256,7 @@ func test_render_exact() {
     cfg := empty_config()
 
     expected_text := join([
-        "ChangeBudget",
+        "ChangeBucket",
         "",
         "Base: HEAD",
         "Head: working tree",
@@ -283,7 +283,7 @@ func test_render_exact() {
     check_eq(render_text(m, cfg, false), expected_text, "text report exact output")
 
     expected_md := join([
-        "# ChangeBudget Report",
+        "# ChangeBucket Report",
         "",
         "Generated: 2026-06-01T00:00:00Z",
         "",
@@ -327,13 +327,13 @@ func test_render() {
     cfg["max_files"] := 3
     e := evaluate(m, cfg)
     md := render_markdown(e, cfg, true)
-    check(contains(md, "# ChangeBudget Report") == 1, "markdown has title")
+    check(contains(md, "# ChangeBucket Report") == 1, "markdown has title")
     check(contains(md, "## Summary") == 1, "markdown has summary section")
     check(contains(md, "## File Categories") == 1, "markdown has categories section")
     check(contains(md, "## Largest Changes") == 1, "markdown has largest changes")
     check(contains(md, "Budget Result") == 1, "markdown shows budget result when checked")
     txt := render_text(e, cfg, true)
-    check(contains(txt, "ChangeBudget") == 1, "text report has header")
+    check(contains(txt, "ChangeBucket") == 1, "text report has header")
     check(contains(txt, "Risk level:") == 1, "text report shows risk")
     check(contains(txt, "Result: budget exceeded") == 1, "text report shows budget failure")
 }
@@ -368,7 +368,7 @@ test_non_git()
 teardown()
 
 print("")
-print("ChangeBudget tests: ${passed} passed, ${failed} failed")
+print("ChangeBucket tests: ${passed} passed, ${failed} failed")
 if failed > 0 {
     exit(1)
 }

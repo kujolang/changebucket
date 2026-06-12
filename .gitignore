@@ -1,6 +1,6 @@
 # Generated reports (the committed sample lives under examples/).
-/CHANGE_BUDGET.md
-/changebudget-report.md
+/CHANGE_BUCKET.md
+/changebucket-report.md
 
 # OS / editor noise.
 .DS_Store

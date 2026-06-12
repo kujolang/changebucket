@@ -1,4 +1,4 @@
-# ChangeBudget :: analyze
+# ChangeBucket :: analyze
 #
 # The heart of the tool. It turns read-only git output into the structured
 # analysis model (summary + categories + per-file detail + risk level).

@@ -1,4 +1,4 @@
-# ChangeBudget :: budget
+# ChangeBucket :: budget
 #
 # Deterministic threshold checking against an analysis model. A budget config is
 # a plain dict (numeric limits default to null = unlimited; boolean bans default

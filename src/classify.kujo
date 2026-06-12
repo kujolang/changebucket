@@ -1,4 +1,4 @@
-# ChangeBudget :: classify
+# ChangeBucket :: classify
 #
 # Pragmatic path/extension rules that bucket a changed file into zero or more
 # categories. A file may belong to several (e.g. package.json is both `config`

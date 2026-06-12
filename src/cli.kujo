@@ -1,4 +1,4 @@
-# ChangeBudget :: cli
+# ChangeBucket :: cli
 #
 # Argument parsing and command dispatch. This is the only module that prints
 # user-facing output and chooses the process exit code. It wires together
@@ -66,7 +66,7 @@ func has_flag(parsed, name) {
     return has_key(parsed["flags"], name) == 1
 }
 
-# The set of valueless boolean flags ChangeBudget understands.
+# The set of valueless boolean flags ChangeBucket understands.
 func bool_flags() {
     return ["json", "markdown", "no-deletes", "no-dependency-changes", "no-lockfile-changes", "no-config-changes", "no-generated-changes"]
 }
@@ -159,11 +159,11 @@ func print_lines(lines) {
 
 func print_help() {
     print_lines([
-        "changebudget " + VERSION + " — measure the footprint of a code change",
+        "changebucket " + VERSION + " — measure the footprint of a code change",
         "",
         "Usage:",
-        "  changebudget [options]            Analyze the working tree against HEAD",
-        "  changebudget check [budget opts]  Analyze and enforce a budget (non-zero exit on fail)",
+        "  changebucket [options]            Analyze the working tree against HEAD",
+        "  changebucket check [budget opts]  Analyze and enforce a budget (non-zero exit on fail)",
         "",
         "Range options:",
         "  --base <ref>      Compare against this ref (default HEAD)",
@@ -189,7 +189,7 @@ func print_help() {
         "  help, --help      Show this help",
         "  version           Show version",
         "",
-        "ChangeBudget uses read-only git commands and never modifies your repo."
+        "ChangeBucket uses read-only git commands and never modifies your repo."
     ])
 }
 
@@ -206,7 +206,7 @@ export func main(argv) {
         return 0
     }
     if cmd == "version" || cmd == "--version" || cmd == "-V" {
-        print("changebudget " + VERSION)
+        print("changebucket " + VERSION)
         return 0
     }
     if cmd == "check" {
@@ -218,6 +218,6 @@ export func main(argv) {
     }
 
     print("error: unknown command '" + cmd + "'")
-    print("Run 'changebudget help' for usage.")
+    print("Run 'changebucket help' for usage.")
     return 2
 }

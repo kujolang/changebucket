@@ -1,4 +1,4 @@
-# ChangeBudget :: render
+# ChangeBucket :: render
 #
 # Pure presentation: turn an analysis model into a compact text report or a
 # markdown report. Nothing here touches disk or git. (JSON output is just
@@ -180,7 +180,7 @@ export func render_text(model, cfg, show_budget) {
     s := model["summary"]
     cats := model["categories"]
     mut out := []
-    out = push(out, "ChangeBudget")
+    out = push(out, "ChangeBucket")
     out = push(out, "")
     out = push(out, "Base: " + model["base"])
     out = push(out, "Head: " + model["head"])
@@ -253,7 +253,7 @@ export func render_markdown(model, cfg, show_budget) {
     s := model["summary"]
     cats := model["categories"]
     mut out := []
-    out = push(out, "# ChangeBudget Report")
+    out = push(out, "# ChangeBucket Report")
     out = push(out, "")
     out = push(out, "Generated: " + model["generated_at"])
     out = push(out, "")
