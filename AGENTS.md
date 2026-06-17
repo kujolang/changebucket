@@ -105,6 +105,13 @@ between layers — see the JSON shape in the README.
 - else → **worktree mode**, `spec = base` (default `HEAD`; empty-tree hash if the
   repo has no commits), untracked files included.
 
+### Output rendering style
+
+- In `src/render.kujo`, prefer small local append helpers (`append_lines`,
+  row/table helpers) over long runs of repeated `out = push(out, ...)`.
+- Keep exact output readable in `tests/changebucket_test.kujo`; change generated
+  samples only when the report contract intentionally changes.
+
 ## Command reference (for agents)
 
 ```bash

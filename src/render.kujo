@@ -50,6 +50,17 @@ func append_lines(out, lines) {
     return next
 }
 
+func append_text_rows(out, rows) {
+    mut next := out
+    mut i := 0
+    while i < len(rows) {
+        row := rows[i]
+        next = push(next, "- " + row[0] + ": " + row[1])
+        i = i + 1
+    }
+    return next
+}
+
 # Files sorted by churn descending, truncated to `n`. A copy is sorted in place
 # via selection sort (no sort builtin is relied on).
 export func top_by_churn(files, n) {
@@ -180,21 +191,17 @@ export func render_text(model, cfg, show_budget) {
     s := model["summary"]
     cats := model["categories"]
     mut out := []
-    out = push(out, "ChangeBucket")
-    out = push(out, "")
-    out = push(out, "Base: " + model["base"])
-    out = push(out, "Head: " + model["head"])
-    out = push(out, "")
-    out = push(out, "Summary:")
+    out = append_lines(out, [
+        "ChangeBucket",
+        "",
+        "Base: " + model["base"],
+        "Head: " + model["head"],
+        "",
+        "Summary:"
+    ])
     summary := summary_rows(s, text_summary_specs())
-    mut si := 0
-    while si < len(summary) {
-        row := summary[si]
-        out = push(out, "- " + row[0] + ": " + row[1])
-        si = si + 1
-    }
-    out = push(out, "")
-    out = push(out, "Categories:")
+    out = append_text_rows(out, summary)
+    out = append_lines(out, ["", "Categories:"])
     order := category_order()
     mut ci := 0
     while ci < len(order) {
@@ -208,8 +215,7 @@ export func render_text(model, cfg, show_budget) {
 
     largest := top_by_churn(model["files"], 5)
     if len(largest) > 0 {
-        out = push(out, "")
-        out = push(out, "Largest changes:")
+        out = append_lines(out, ["", "Largest changes:"])
         mut li := 0
         while li < len(largest) {
             f := largest[li]
@@ -219,19 +225,17 @@ export func render_text(model, cfg, show_budget) {
     }
 
     if show_budget && model["budget"]["checked"] == true {
-        out = push(out, "")
-        out = push(out, "Budget:")
+        out = append_lines(out, ["", "Budget:"])
         blines := budget_text_lines(model, cfg)
         if len(blines) == 0 {
             out = push(out, "- (no constraints set)")
         } else {
             out = append_lines(out, blines)
         }
-        out = push(out, "")
         if model["budget"]["passed"] == true {
-            out = push(out, "Result: within budget")
+            out = append_lines(out, ["", "Result: within budget"])
         } else {
-            out = push(out, "Result: budget exceeded")
+            out = append_lines(out, ["", "Result: budget exceeded"])
             failures := model["budget"]["failures"]
             mut fi := 0
             while fi < len(failures) {
@@ -248,33 +252,45 @@ func md_row(cells) {
     return "| " + join(cells, " | ") + " |"
 }
 
+func append_md_rows(out, rows) {
+    mut next := out
+    mut i := 0
+    while i < len(rows) {
+        next = push(next, md_row(rows[i]))
+        i = i + 1
+    }
+    return next
+}
+
+func append_md_table(out, header, separator, rows) {
+    mut next := out
+    next = push(next, md_row(header))
+    next = push(next, md_row(separator))
+    next = append_md_rows(next, rows)
+    next = push(next, "")
+    return next
+}
+
 # Clean markdown report.
 export func render_markdown(model, cfg, show_budget) {
     s := model["summary"]
     cats := model["categories"]
     mut out := []
-    out = push(out, "# ChangeBucket Report")
-    out = push(out, "")
-    out = push(out, "Generated: " + model["generated_at"])
-    out = push(out, "")
-    out = push(out, "Base: `" + model["base"] + "`  Head: `" + model["head"] + "`")
-    out = push(out, "")
-    out = push(out, "## Summary")
-    out = push(out, "")
-    out = push(out, md_row(["Metric", "Value"]))
-    out = push(out, md_row(["---", "---:"]))
+    out = append_lines(out, [
+        "# ChangeBucket Report",
+        "",
+        "Generated: " + model["generated_at"],
+        "",
+        "Base: `" + model["base"] + "`  Head: `" + model["head"] + "`",
+        "",
+        "## Summary",
+        ""
+    ])
     summary := summary_rows(s, markdown_summary_specs())
-    mut si := 0
-    while si < len(summary) {
-        row := summary[si]
-        out = push(out, md_row([row[0], row[1]]))
-        si = si + 1
-    }
-    out = push(out, "")
+    out = append_md_table(out, ["Metric", "Value"], ["---", "---:"], summary)
 
     if show_budget && model["budget"]["checked"] == true {
-        out = push(out, "## Budget Result")
-        out = push(out, "")
+        out = append_lines(out, ["## Budget Result", ""])
         if model["budget"]["passed"] == true {
             out = push(out, "Status: **within budget**")
         } else {
@@ -292,34 +308,30 @@ export func render_markdown(model, cfg, show_budget) {
         }
     }
 
-    out = push(out, "## File Categories")
-    out = push(out, "")
-    out = push(out, md_row(["Category", "Count"]))
-    out = push(out, md_row(["---", "---:"]))
+    out = append_lines(out, ["## File Categories", ""])
     order := category_order()
+    mut category_rows := []
     mut ci := 0
     while ci < len(order) {
         key := order[ci]
         count := len(cats[key])
         if count > 0 {
-            out = push(out, md_row([cat_label(key), commas(count)]))
+            category_rows = push(category_rows, [cat_label(key), commas(count)])
         }
         ci = ci + 1
     }
-    out = push(out, "")
+    out = append_md_table(out, ["Category", "Count"], ["---", "---:"], category_rows)
 
     largest := top_by_churn(model["files"], 10)
-    out = push(out, "## Largest Changes")
-    out = push(out, "")
-    out = push(out, md_row(["File", "Status", "+", "-", "Churn"]))
-    out = push(out, md_row(["---", "---", "---:", "---:", "---:"]))
+    out = append_lines(out, ["## Largest Changes", ""])
+    mut largest_rows := []
     mut li := 0
     while li < len(largest) {
         f := largest[li]
-        out = push(out, md_row(["`" + f["path"] + "`", f["status"], commas(f["additions"]), commas(f["deletions"]), commas(f["churn"])]))
+        largest_rows = push(largest_rows, ["`" + f["path"] + "`", f["status"], commas(f["additions"]), commas(f["deletions"]), commas(f["churn"])])
         li = li + 1
     }
-    out = push(out, "")
+    out = append_md_table(out, ["File", "Status", "+", "-", "Churn"], ["---", "---", "---:", "---:", "---:"], largest_rows)
 
     return join(out, "\n")
 }
