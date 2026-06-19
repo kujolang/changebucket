@@ -14,6 +14,8 @@ at a glance:
 It produces structured metrics and a clear report — a human-readable summary,
 JSON, or markdown. It is **read-only**: it only ever runs `git diff` /
 `git ls-files` / `git rev-parse` and never modifies your repository.
+User-supplied refs are validated before git runs, so bad or unsafe refs fail
+explicitly instead of being mistaken for an empty change.
 
 ## What ChangeBucket is *not*
 
@@ -83,7 +85,7 @@ changebucket check --max-files 20 --max-churn 800 \
 
 | Command | Behavior |
 |---|---|
-| `changebucket [options]` | Analyze and print a report. Always exits `0`. |
+| `changebucket [options]` | Analyze and print a report. Exits `0` on successful analysis. |
 | `changebucket check [budget options]` | Analyze and **enforce** a budget. Exits non-zero if exceeded. |
 | `changebucket help` / `changebucket --help` | Show usage. |
 | `changebucket version` / `changebucket --version` | Show version. |
@@ -109,10 +111,16 @@ changebucket check --max-files 20 --max-churn 800 \
 | `--no-generated-changes` | Budget: fail if a generated file changed. |
 
 Budget options are **informational** on the default command (they show a Budget
-section but always exit `0`). They are **enforced** under `check`, which exits
-`1` when the budget is exceeded. Put `check` before the budget flags; the
-enforcement path is `changebucket check --max-files ...`, not `changebucket
---max-files ... check`.
+section but do not enforce budget failures). They are **enforced** under
+`check`, which exits `1` when the budget is exceeded. Put `check` before the
+budget flags; the enforcement path is `changebucket check --max-files ...`, not
+`changebucket --max-files ... check`.
+
+Invalid command-line input exits `2`: unknown options, missing option values,
+and non-negative integer budget flags that are not numeric. Invalid git refs
+exit `1` with an `error:` line. For safety, `--base` and `--head` reject empty
+refs, refs that begin with `-`, whitespace, and shell metacharacters before
+calling git.
 
 ### Default vs working-tree vs range
 
@@ -224,9 +232,9 @@ budget was checked), file-category counts, and the largest changes by churn.
 
 | Code | Meaning |
 |---|---|
-| `0` | Success (the default command always exits `0`, even with budget flags). |
-| `1` | A `check` whose budget was exceeded, **or** the target is not a git repository (`error: not a git repository`). |
-| `2` | Usage error (unknown command). |
+| `0` | Successful analysis (the default command does not enforce budget failures). |
+| `1` | Operational failure, such as a non-git target or invalid git ref, **or** a `check` whose budget was exceeded. |
+| `2` | Usage error, such as an unknown command/option, missing option value, or invalid numeric budget. |
 
 ## Tests
 
@@ -238,7 +246,8 @@ The suite is self-contained and filesystem-isolated: it builds throwaway git
 repos under `$TMPDIR`, needs no network or credentials, and touches no global
 state. It covers numstat/name-status parsing, every file category, churn and
 risk calculation, budget pass/fail, JSON validity, markdown/text rendering,
-deleted and binary files, and the non-git error path.
+deleted and binary files, invalid refs, CLI validation, and the non-git error
+path. As of 2026-06-19, the suite has 81 assertions.
 
 ## Non-goals and limitations
 
@@ -247,6 +256,9 @@ deleted and binary files, and the non-git error path.
   standalone unified diff is a planned future improvement (see `AGENTS.md`).
 - **Rename detection is off** (`--no-renames`). A rename is reported as a delete
   plus an add, which is intentionally conservative for a footprint tool.
+- **Ref syntax is intentionally conservative.** `--base` and `--head` accept
+  normal branch/tag/commit-ish values but reject whitespace, leading dashes, and
+  shell metacharacters before git runs.
 - **Untracked binary detection is by extension**, since git's numstat cannot
   report line counts for files it does not yet track.
 - **No network, no API keys, no provider dependencies**, and no dependency on

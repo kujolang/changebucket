@@ -32,7 +32,7 @@ rg -n "pattern" -g '!examples/CHANGE_BUCKET.example.md'
 
 ## Current status
 
-Complete and working as of 2026-06-12. All 72 tests pass; every source file
+Complete and working as of 2026-06-19. All 81 tests pass; every source file
 passes the checker. v1.0.0.
 
 ## First files to read (in order)
@@ -71,8 +71,8 @@ bin/changebucket               bash launcher (KUJO env override)
 kujo.toml                      package metadata
 src/util.kujo                  iso_now, commas, pad_right, basename, includes, truthy
 src/diffsrc.kujo               READ-ONLY git: is_repo, head_commit, resolve_refs,
-                               numstat_text, namestatus_text, untracked_list,
-                               is_binary_path, count_added_lines
+                               validate_diff, numstat_text, namestatus_text,
+                               untracked_list, is_binary_path, count_added_lines
 src/classify.kujo              classify(path) -> [categories]; category_order()
 src/analyze.kujo               analyze(repo, base, head) -> model; risk_level(...)
 src/budget.kujo                empty_config, has_constraints, evaluate(model, cfg)
@@ -85,10 +85,11 @@ examples/CHANGE_BUCKET.example.md   a real generated markdown report
 
 ## Architecture overview
 
-`cli.main` parses args → `analyze.analyze(repo, base, head)` runs read-only git
-(`diffsrc`), parses `--numstat` + `--name-status` (and untracked files in
-worktree mode), classifies each path (`classify`), and rolls everything into the
-**model** dict. If budget flags are present (always, under `check`),
+`cli.main` parses and validates args → `analyze.analyze(repo, base, head)`
+resolves and validates the git diff spec through `diffsrc`, parses `--numstat`
++ `--name-status` (and untracked files in worktree mode), classifies each path
+(`classify`), and rolls everything into the **model** dict. If budget flags are
+present (always, under `check`),
 `budget.evaluate` fills the model's `budget` block. Then `render` (or
 `to_json_pretty`) turns the model into output. The model is the single contract
 between layers — see the JSON shape in the README.
@@ -104,6 +105,9 @@ between layers — see the JSON shape in the README.
 - `--head` given → **range mode**, `spec = base..head`, no untracked.
 - else → **worktree mode**, `spec = base` (default `HEAD`; empty-tree hash if the
   repo has no commits), untracked files included.
+- `--base` and `--head` are validated before git runs. Empty refs, leading
+  dashes, whitespace, and shell metacharacters are rejected; missing git refs
+  produce an explicit error instead of a zero-change report.
 
 ### Output rendering style
 
@@ -155,11 +159,12 @@ changebucket check --max-files N --max-churn N \
 ## Verification checklist
 
 - [ ] `for f in changebucket.kujo src/*.kujo tests/*.kujo; do $KUJO check "$f"; done` all pass
-- [ ] `./tests/run.sh` → "72 passed, 0 failed"
+- [ ] `./tests/run.sh` → "81 passed, 0 failed"
 - [ ] `$KUJO run changebucket.kujo -- --help` prints help
 - [ ] worktree analysis in a temp repo (default, `--json`, `--markdown`)
 - [ ] `check --max-files 1` in a multi-file change exits non-zero
 - [ ] non-git directory prints `error: not a git repository` and exits 1
+- [ ] invalid refs and invalid numeric budget flags fail with explicit errors
 
 ## Open questions / future improvements
 
