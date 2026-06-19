@@ -7,7 +7,7 @@
 
 from src.util import iso_now
 from src.classify import classify, category_order
-from src.diffsrc import is_repo, resolve_refs, numstat_text, namestatus_text, untracked_list, is_binary_path, count_added_lines
+from src.diffsrc import is_repo, resolve_refs, validate_diff, numstat_text, namestatus_text, untracked_list, is_binary_path, count_added_lines
 
 # Map a git name-status letter to a human status word.
 func status_word(letter) {
@@ -207,6 +207,13 @@ export func analyze(repo, base_flag, head_flag) {
         return {"error": "not a git repository: " + repo}
     }
     refs := resolve_refs(repo, base_flag, head_flag)
+    if has_key(refs, "error") == 1 {
+        return {"error": refs["error"]}
+    }
+    diff_error := validate_diff(repo, refs)
+    if diff_error != "" {
+        return {"error": diff_error}
+    }
 
     mut order := []
     mut info := {}

@@ -53,6 +53,10 @@ func sh(cmd) {
     return execute_status(cmd)
 }
 
+func run_cli(argline) {
+    return sh(KUJO_BIN + " run changebucket.kujo -- " + argline + " > " + WORK + "/cli.out 2>&1")
+}
+
 # write_file refuses to overwrite an existing path on this runtime, so replace.
 func put(path, content) {
     if file_exists(path) {
@@ -64,6 +68,7 @@ func put(path, content) {
 WORK := join_path(env_or("TMPDIR", "/tmp"), "changebucket_selftest")
 REPO := join_path(WORK, "repo")
 PLAIN := join_path(WORK, "plain")
+KUJO_BIN := env_or("KUJO", "kujo")
 
 mut C1 := ""
 
@@ -345,6 +350,23 @@ func test_non_git() {
     check(has_key(m, "error") == 1, "non-git directory reports an error")
 }
 
+# --- invalid input ------------------------------------------------------
+func test_invalid_input() {
+    missing := analyze(REPO, "does-not-exist", null)
+    check(has_key(missing, "error") == 1, "missing base ref reports an error")
+    check(contains(missing["error"], "invalid git revision or range") == 1, "missing ref error names invalid range")
+
+    unsafe := analyze(REPO, "HEAD;touch/tmp/changebucket-oops", null)
+    check(has_key(unsafe, "error") == 1, "unsafe base ref reports an error")
+    check(contains(unsafe["error"], "invalid --base ref") == 1, "unsafe ref is rejected before git")
+
+    check_eq(run_cli("--definitely-unknown").exitcode, 2, "unknown option exits 2")
+    check_eq(run_cli("--base").exitcode, 2, "missing option value exits 2")
+    check_eq(run_cli("check --max-files nope").exitcode, 2, "non-numeric budget exits 2")
+    check_eq(run_cli("check --max-files -1").exitcode, 2, "negative budget exits 2")
+    check_eq(run_cli("--base does-not-exist").exitcode, 1, "invalid git ref exits 1")
+}
+
 # --- util ---------------------------------------------------------------
 func test_util() {
     check_eq(commas(1280), "1,280", "commas groups thousands")
@@ -365,6 +387,7 @@ test_render_exact()
 test_render()
 test_analyze_range()
 test_non_git()
+test_invalid_input()
 teardown()
 
 print("")

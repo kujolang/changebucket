@@ -8,4 +8,5 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 KUJO="${KUJO:-kujo}"
 
+cd "$PROJECT_DIR"
 exec "$KUJO" run "$PROJECT_DIR/tests/changebucket_test.kujo"

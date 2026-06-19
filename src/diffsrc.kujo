@@ -33,6 +33,32 @@ func git(repo_path, subcmd) {
     return execute_status(cmd)
 }
 
+# Reject ref inputs that are unsafe or ambiguous to pass through the shell/git.
+# This keeps user-supplied --base/--head values from being interpreted as shell
+# syntax or git options.
+func has_unsafe_ref_char(ref) {
+    bad := [" ", "\t", "\n", "\r", "'", "\"", ";", "&", "|", "`", "$", "(", ")", "<", ">", "\\"]
+    for ch in bad {
+        if contains(ref, ch) == 1 {
+            return true
+        }
+    }
+    return false
+}
+
+func safe_ref_value(ref) {
+    if type(ref) == "null" || ref == "" {
+        return false
+    }
+    if starts_with(ref, "-") {
+        return false
+    }
+    if has_unsafe_ref_char(ref) {
+        return false
+    }
+    return true
+}
+
 # True if git exists and `repo_path` is inside a working tree.
 export func is_repo(repo_path) {
     r := git(repo_path, "rev-parse --is-inside-work-tree")
@@ -61,6 +87,12 @@ export func resolve_refs(repo_path, base_flag, head_flag) {
         if type(base_flag) != "null" && base_flag != "" {
             base = base_flag
         }
+        if safe_ref_value(base) == false {
+            return {"error": "invalid --base ref: " + base}
+        }
+        if safe_ref_value(head_flag) == false {
+            return {"error": "invalid --head ref: " + head_flag}
+        }
         return {
             "mode": "range",
             "spec": base + ".." + head_flag,
@@ -73,6 +105,9 @@ export func resolve_refs(repo_path, base_flag, head_flag) {
     mut base := ""
     mut base_label := ""
     if type(base_flag) != "null" && base_flag != "" {
+        if safe_ref_value(base_flag) == false {
+            return {"error": "invalid --base ref: " + base_flag}
+        }
         base = base_flag
         base_label = base_flag
     } else {
@@ -94,10 +129,31 @@ export func resolve_refs(repo_path, base_flag, head_flag) {
     }
 }
 
+func diff_spec_arg(refs) {
+    return shq(refs["spec"])
+}
+
+# Validate the resolved diff spec once up front so a bad ref does not look like
+# a legitimate empty change.
+export func validate_diff(repo_path, refs) {
+    r := git(repo_path, "diff --name-status --no-renames " + diff_spec_arg(refs))
+    if r.exitcode == 0 {
+        return ""
+    }
+    mut msg := trim(r.stderr)
+    if msg == "" {
+        msg = trim(r.stdout)
+    }
+    if msg == "" {
+        msg = "git diff failed"
+    }
+    return "invalid git revision or range '" + refs["spec"] + "': " + msg
+}
+
 # Raw `git diff --numstat` output for the resolved spec (added\tdeleted\tpath
 # per line; "-" for binary). Renames are disabled so paths are unambiguous.
 export func numstat_text(repo_path, refs) {
-    r := git(repo_path, "diff --numstat --no-renames " + refs["spec"])
+    r := git(repo_path, "diff --numstat --no-renames " + diff_spec_arg(refs))
     if r.exitcode == 0 {
         return r.stdout
     }
@@ -106,7 +162,7 @@ export func numstat_text(repo_path, refs) {
 
 # Raw `git diff --name-status` output (status\tpath per line).
 export func namestatus_text(repo_path, refs) {
-    r := git(repo_path, "diff --name-status --no-renames " + refs["spec"])
+    r := git(repo_path, "diff --name-status --no-renames " + diff_spec_arg(refs))
     if r.exitcode == 0 {
         return r.stdout
     }

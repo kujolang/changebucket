@@ -19,7 +19,7 @@ VERSION := "1.0.0"
 # --- argument parsing ---------------------------------------------------
 
 # Split tokens into positionals and flags. Names in `bool_flags` are valueless
-# switches; every other `--flag` consumes the next token as its value.
+# switches; names in `value_flags` consume the next token as their value.
 func parse_args(tokens, bool_flags) {
     mut positionals := []
     mut flags := {}
@@ -29,14 +29,17 @@ func parse_args(tokens, bool_flags) {
         tok := tokens[i]
         if starts_with(tok, "--") {
             key := substring(tok, 2, len(tok))
+            if known_flag(key, bool_flags) == false {
+                return {"positionals": positionals, "flags": flags, "error": "unknown option --" + key}
+            }
             if includes(bool_flags, key) {
                 flags[key] := true
             } else {
-                if i + 1 < n {
+                if i + 1 < n && starts_with(tokens[i + 1], "--") == false {
                     flags[key] := tokens[i + 1]
                     i = i + 1
                 } else {
-                    flags[key] := ""
+                    return {"positionals": positionals, "flags": flags, "error": "missing value for --" + key}
                 }
             }
         } else {
@@ -71,6 +74,43 @@ func bool_flags() {
     return ["json", "markdown", "no-deletes", "no-dependency-changes", "no-lockfile-changes", "no-config-changes", "no-generated-changes"]
 }
 
+func value_flags() {
+    return ["base", "head", "repo", "output", "max-files", "max-churn", "max-additions", "max-deletions"]
+}
+
+func numeric_flags() {
+    return ["max-files", "max-churn", "max-additions", "max-deletions"]
+}
+
+func known_flag(name, bools) {
+    return includes(bools, name) || includes(value_flags(), name)
+}
+
+func is_digits(text) {
+    if text == "" {
+        return false
+    }
+    mut i := 0
+    while i < len(text) {
+        ch := substring(text, i, i + 1)
+        if contains("0123456789", ch) == 0 {
+            return false
+        }
+        i = i + 1
+    }
+    return true
+}
+
+func validate_numeric_flags(parsed) {
+    for name in numeric_flags() {
+        v := flag(parsed, name)
+        if type(v) != "null" && is_digits(v) == false {
+            return "invalid numeric value for --" + name + ": " + v
+        }
+    }
+    return ""
+}
+
 # Read an integer flag (null when absent or empty).
 func int_flag(parsed, name) {
     v := flag(parsed, name)
@@ -100,6 +140,16 @@ func build_config(parsed) {
 # Run analysis and emit output. `is_check` decides whether a failed budget
 # turns into a non-zero exit code.
 func run(parsed, is_check) {
+    if has_key(parsed, "error") == 1 {
+        print("error: " + parsed["error"])
+        return 2
+    }
+    numeric_error := validate_numeric_flags(parsed)
+    if numeric_error != "" {
+        print("error: " + numeric_error)
+        return 2
+    }
+
     repo := flag_or(parsed, "repo", ".")
     base := flag(parsed, "base")
     head := flag(parsed, "head")
