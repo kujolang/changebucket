@@ -1,5 +1,9 @@
 # ChangeBucket
 
+[![Version](https://img.shields.io/badge/version-1.0.0-black)](https://github.com/kujolang/changebucket)
+[![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
+[![built with Kujo](https://img.shields.io/badge/built%20with-Kujo-white.svg)](https://github.com/kujolang/kujo)
+
 ChangeBucket measures the **size, shape, and risk footprint** of a code change.
 It is especially useful right after an AI agent modifies a repository, to answer
 at a glance:
