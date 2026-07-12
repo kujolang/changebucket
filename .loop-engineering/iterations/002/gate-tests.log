@@ -1,1 +1,3 @@
-./tests/run.sh: line 12: exec: kujo: not found
+Compiler optimization: 0 constants folded, 6 dead instructions removed, 0 peephole optimizations
+
+ChangeBucket tests: 81 passed, 0 failed

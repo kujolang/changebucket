@@ -1,8 +1,626 @@
 
 ## gate: tests
-$ KUJO_BIN=${KUJO_BIN:-../kujo/target/debug/kujo} ./tests/run.sh
-./tests/run.sh: line 12: exec: kujo: not found
+$ KUJO=${KUJO:-../kujo/target/debug/kujo} ./tests/run.sh
+Compiler optimization: 0 constants folded, 6 dead instructions removed, 0 peephole optimizations
+
+ChangeBucket tests: 81 passed, 0 failed
+gate tests: pass
 
 ## gate: diff_check
 $ git diff --check
-gate diff_check: pass
+.loop-engineering/iterations/001/diff.patch:28: trailing whitespace.
++- 
+.loop-engineering/iterations/001/diff.patch:32: trailing whitespace.
++- 
+.loop-engineering/iterations/001/diff.patch:49: trailing whitespace.
++- 
+.loop-engineering/iterations/001/diff.patch:53: trailing whitespace.
++- 
+.loop-engineering/iterations/001/diff.patch:71: trailing whitespace.
++- 
+.loop-engineering/iterations/001/diff.patch:83: trailing whitespace.
++- 
+.loop-engineering/iterations/001/eval.log:12: trailing whitespace.
+++- 
+.loop-engineering/iterations/001/eval.log:14: trailing whitespace.
+++- 
+.loop-engineering/iterations/001/eval.log:16: trailing whitespace.
+++- 
+.loop-engineering/iterations/001/eval.log:18: trailing whitespace.
+++- 
+.loop-engineering/iterations/001/eval.log:20: trailing whitespace.
+++- 
+.loop-engineering/iterations/001/eval.log:22: trailing whitespace.
+++- 
+.loop-engineering/iterations/001/gate-diff_check.log:2: trailing whitespace.
+++- 
+.loop-engineering/iterations/001/gate-diff_check.log:4: trailing whitespace.
+++- 
+.loop-engineering/iterations/001/gate-diff_check.log:6: trailing whitespace.
+++- 
+.loop-engineering/iterations/001/gate-diff_check.log:8: trailing whitespace.
+++- 
+.loop-engineering/iterations/001/gate-diff_check.log:10: trailing whitespace.
+++- 
+.loop-engineering/iterations/001/gate-diff_check.log:12: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/diff.patch:34: trailing whitespace.
++  
+.loop-engineering/iterations/002/diff.patch:58: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/diff.patch:62: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/diff.patch:79: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/diff.patch:83: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/diff.patch:101: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/diff.patch:113: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/diff.patch:132: trailing whitespace.
++  
+.loop-engineering/iterations/002/diff.patch:149: trailing whitespace.
++- 
+.loop-engineering/iterations/002/diff.patch:153: trailing whitespace.
++- 
+.loop-engineering/iterations/002/diff.patch:171: trailing whitespace.
++- 
+.loop-engineering/iterations/002/diff.patch:183: trailing whitespace.
++- 
+.loop-engineering/iterations/002/diff.patch:223: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/diff.patch:225: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/diff.patch:227: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/diff.patch:229: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/diff.patch:231: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/diff.patch:233: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/diff.patch:240: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/diff.patch:242: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/diff.patch:244: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/diff.patch:246: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/diff.patch:248: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/diff.patch:250: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/diff.patch:289: trailing whitespace.
++- 
+.loop-engineering/iterations/002/diff.patch:293: trailing whitespace.
++- 
+.loop-engineering/iterations/002/diff.patch:310: trailing whitespace.
++- 
+.loop-engineering/iterations/002/diff.patch:314: trailing whitespace.
++- 
+.loop-engineering/iterations/002/diff.patch:332: trailing whitespace.
++- 
+.loop-engineering/iterations/002/diff.patch:344: trailing whitespace.
++- 
+.loop-engineering/iterations/002/eval.log:12: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/eval.log:14: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/eval.log:16: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/eval.log:18: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/eval.log:20: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/eval.log:22: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/eval.log:24: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:26: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:28: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:30: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:32: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:34: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:36: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:38: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:40: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:42: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:44: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:46: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:48: trailing whitespace.
+++  
+.loop-engineering/iterations/002/eval.log:50: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:52: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:54: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:56: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:58: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:60: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/eval.log:62: trailing whitespace.
+++  
+.loop-engineering/iterations/002/eval.log:64: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/eval.log:66: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/eval.log:68: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/eval.log:70: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/eval.log:72: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/eval.log:74: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/eval.log:76: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/eval.log:78: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/eval.log:80: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/eval.log:82: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/eval.log:84: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/eval.log:86: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/eval.log:88: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/eval.log:90: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/eval.log:92: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/eval.log:94: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/eval.log:96: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/eval.log:98: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/eval.log:100: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/eval.log:102: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/eval.log:104: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/eval.log:106: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/gate-diff_check.log:2: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/gate-diff_check.log:4: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/gate-diff_check.log:6: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/gate-diff_check.log:8: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/gate-diff_check.log:10: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/gate-diff_check.log:12: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/gate-diff_check.log:14: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:16: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:18: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:20: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:22: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:24: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:26: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:28: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:30: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:32: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:34: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:36: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:38: trailing whitespace.
+++  
+.loop-engineering/iterations/002/gate-diff_check.log:40: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:42: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:44: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:46: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:48: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:50: trailing whitespace.
++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:52: trailing whitespace.
+++  
+.loop-engineering/iterations/002/gate-diff_check.log:54: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/gate-diff_check.log:56: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/gate-diff_check.log:58: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/gate-diff_check.log:60: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/gate-diff_check.log:62: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:64: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:66: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:68: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:70: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:72: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:74: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:76: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:78: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:80: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:82: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:84: trailing whitespace.
+++++- 
+.loop-engineering/iterations/002/gate-diff_check.log:86: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/gate-diff_check.log:88: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/gate-diff_check.log:90: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/gate-diff_check.log:92: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/gate-diff_check.log:94: trailing whitespace.
+++- 
+.loop-engineering/iterations/002/gate-diff_check.log:96: trailing whitespace.
+++- 
+.loop-engineering/iterations/003/diff.patch:34: trailing whitespace.
++  
+.loop-engineering/iterations/003/diff.patch:58: trailing whitespace.
+++- 
+.loop-engineering/iterations/003/diff.patch:62: trailing whitespace.
+++- 
+.loop-engineering/iterations/003/diff.patch:79: trailing whitespace.
+++- 
+.loop-engineering/iterations/003/diff.patch:83: trailing whitespace.
+++- 
+.loop-engineering/iterations/003/diff.patch:101: trailing whitespace.
+++- 
+.loop-engineering/iterations/003/diff.patch:113: trailing whitespace.
+++- 
+.loop-engineering/iterations/003/diff.patch:132: trailing whitespace.
++  
+.loop-engineering/iterations/003/diff.patch:149: trailing whitespace.
++- 
+.loop-engineering/iterations/003/diff.patch:153: trailing whitespace.
++- 
+.loop-engineering/iterations/003/diff.patch:171: trailing whitespace.
++- 
+.loop-engineering/iterations/003/diff.patch:183: trailing whitespace.
++- 
+.loop-engineering/iterations/003/diff.patch:223: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:225: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:227: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:229: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:231: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:233: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:240: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:242: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:244: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:246: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:248: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:250: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:295: trailing whitespace.
++  
+.loop-engineering/iterations/003/diff.patch:325: trailing whitespace.
+++  
+.loop-engineering/iterations/003/diff.patch:349: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:353: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:370: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:374: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:392: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:404: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:423: trailing whitespace.
+++  
+.loop-engineering/iterations/003/diff.patch:440: trailing whitespace.
+++- 
+.loop-engineering/iterations/003/diff.patch:444: trailing whitespace.
+++- 
+.loop-engineering/iterations/003/diff.patch:462: trailing whitespace.
+++- 
+.loop-engineering/iterations/003/diff.patch:474: trailing whitespace.
+++- 
+.loop-engineering/iterations/003/diff.patch:500: trailing whitespace.
++  
+.loop-engineering/iterations/003/diff.patch:525: trailing whitespace.
++  
+.loop-engineering/iterations/003/diff.patch:533: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:535: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:537: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:539: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:541: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:543: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:550: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:552: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:554: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:556: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:558: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:560: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:576: trailing whitespace.
++  
+.loop-engineering/iterations/003/diff.patch:616: trailing whitespace.
+++- 
+.loop-engineering/iterations/003/diff.patch:620: trailing whitespace.
+++- 
+.loop-engineering/iterations/003/diff.patch:637: trailing whitespace.
+++- 
+.loop-engineering/iterations/003/diff.patch:641: trailing whitespace.
+++- 
+.loop-engineering/iterations/003/diff.patch:659: trailing whitespace.
+++- 
+.loop-engineering/iterations/003/diff.patch:671: trailing whitespace.
+++- 
+.loop-engineering/iterations/003/diff.patch:699: trailing whitespace.
++  
+.loop-engineering/iterations/003/diff.patch:711: trailing whitespace.
++- 
+.loop-engineering/iterations/003/diff.patch:751: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:753: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:755: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:757: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:759: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:761: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:763: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:765: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:767: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:769: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:771: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:773: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:775: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:777: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:779: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:781: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:783: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:785: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:787: trailing whitespace.
++++  
+.loop-engineering/iterations/003/diff.patch:789: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:791: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:793: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:795: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:797: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:799: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:801: trailing whitespace.
++++  
+.loop-engineering/iterations/003/diff.patch:803: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:805: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:807: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:809: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:811: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:813: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:815: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:817: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:819: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:821: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:823: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:825: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:827: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:829: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:831: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:833: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:835: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:837: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:839: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:841: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:843: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:845: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:852: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:854: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:856: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:858: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:860: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:862: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:864: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:866: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:868: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:870: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:872: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:874: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:876: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:878: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:880: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:882: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:884: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:886: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:888: trailing whitespace.
++++  
+.loop-engineering/iterations/003/diff.patch:890: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:892: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:894: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:896: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:898: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:900: trailing whitespace.
+++++- 
+.loop-engineering/iterations/003/diff.patch:902: trailing whitespace.
++++  
+.loop-engineering/iterations/003/diff.patch:904: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:906: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:908: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:910: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:912: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:914: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:916: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:918: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:920: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:922: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:924: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:926: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:928: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:930: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:932: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:934: trailing whitespace.
++++++- 
+.loop-engineering/iterations/003/diff.patch:936: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:938: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:940: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:942: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:944: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:946: trailing whitespace.
++++- 
+.loop-engineering/iterations/003/diff.patch:962: trailing whitespace.
++ 
+.loop-engineering/iterations/003/diff.patch:991: trailing whitespace.
++- 
+.loop-engineering/iterations/003/diff.patch:995: trailing whitespace.
++- 
+.loop-engineering/iterations/003/diff.patch:1012: trailing whitespace.
++- 
+.loop-engineering/iterations/003/diff.patch:1016: trailing whitespace.
++- 
+.loop-engineering/iterations/003/diff.patch:1034: trailing whitespace.
++- 
+.loop-engineering/iterations/003/diff.patch:1046: trailing whitespace.
++- 
+.loop-engineering/iterations/003/diff.patch:1075: trailing whitespace.
++ 

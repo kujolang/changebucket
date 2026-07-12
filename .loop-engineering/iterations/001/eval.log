@@ -1,8 +1,22 @@
 
 ## gate: tests
-$ KUJO_BIN=${KUJO_BIN:-../kujo/target/debug/kujo} ./tests/run.sh
-./tests/run.sh: line 12: exec: kujo: not found
+$ KUJO=${KUJO:-../kujo/target/debug/kujo} ./tests/run.sh
+Compiler optimization: 0 constants folded, 6 dead instructions removed, 0 peephole optimizations
+
+ChangeBucket tests: 81 passed, 0 failed
+gate tests: pass
 
 ## gate: diff_check
 $ git diff --check
-gate diff_check: pass
+.loop-engineering/iterations/001/diff.patch:28: trailing whitespace.
++- 
+.loop-engineering/iterations/001/diff.patch:32: trailing whitespace.
++- 
+.loop-engineering/iterations/001/diff.patch:49: trailing whitespace.
++- 
+.loop-engineering/iterations/001/diff.patch:53: trailing whitespace.
++- 
+.loop-engineering/iterations/001/diff.patch:71: trailing whitespace.
++- 
+.loop-engineering/iterations/001/diff.patch:83: trailing whitespace.
++- 
