@@ -6,7 +6,7 @@
 #
 # Loops are index/`while` based so the module compiles under the checker.
 
-from src.util import commas, pad_right
+from src.util import commas
 from src.classify import category_order
 
 # Friendly label for a category key.
@@ -208,7 +208,7 @@ export func render_text(model, cfg, show_budget) {
         key := order[ci]
         count := len(cats[key])
         if count > 0 {
-            out = push(out, "- " + pad_right(cat_label(key) + ":", 22) + commas(count))
+            out = push(out, "- " + pad_right(cat_label(key) + ":", 22, " ") + commas(count))
         }
         ci = ci + 1
     }

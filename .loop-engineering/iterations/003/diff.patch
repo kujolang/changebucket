@@ -1,0 +1,76 @@
+diff --git a/src/analyze.kujo b/src/analyze.kujo
+index 52c9945..665514e 100644
+--- a/src/analyze.kujo
++++ b/src/analyze.kujo
+@@ -5,7 +5,6 @@
+ # Nothing here mutates the repo. All multi-pass logic uses index/`while` loops
+ # or single-`for` helpers so the module compiles under the checker.
+ 
+-from src.util import iso_now
+ from src.classify import classify, category_order
+ from src.diffsrc import is_repo, resolve_refs, validate_diff, numstat_text, namestatus_text, untracked_list, is_binary_path, count_added_lines
+ 
+@@ -192,7 +191,7 @@ func build_model(repo, refs, order, info) {
+     return {
+         "base": refs["base_label"],
+         "head": refs["head_label"],
+-        "generated_at": iso_now(),
++        "generated_at": now_utc(),
+         "summary": summary,
+         "categories": cats,
+         "files": files,
+diff --git a/src/render.kujo b/src/render.kujo
+index 0f697f9..a57ba5b 100644
+--- a/src/render.kujo
++++ b/src/render.kujo
+@@ -6,7 +6,7 @@
+ #
+ # Loops are index/`while` based so the module compiles under the checker.
+ 
+-from src.util import commas, pad_right
++from src.util import commas
+ from src.classify import category_order
+ 
+ # Friendly label for a category key.
+@@ -208,7 +208,7 @@ export func render_text(model, cfg, show_budget) {
+         key := order[ci]
+         count := len(cats[key])
+         if count > 0 {
+-            out = push(out, "- " + pad_right(cat_label(key) + ":", 22) + commas(count))
++            out = push(out, "- " + pad_right(cat_label(key) + ":", 22, " ") + commas(count))
+         }
+         ci = ci + 1
+     }
+diff --git a/src/util.kujo b/src/util.kujo
+index cb4292a..e2acb4f 100644
+--- a/src/util.kujo
++++ b/src/util.kujo
+@@ -4,11 +4,6 @@
+ # formatting, padding for tables, and tiny predicate helpers. Kept deliberately
+ # boring so the rest of the codebase can rely on it without surprises.
+ 
+-# Current time as an ISO-8601 UTC timestamp, e.g. 2026-05-29T17:08:42Z.
+-export func iso_now() {
+-    return format_date(now(), "YYYY-MM-DDTHH:mm:ssZ")
+-}
+-
+ # Thousands-separated decimal string for an integer, e.g. 1280 -> "1,280".
+ # Negative numbers are handled; the sign is preserved.
+ export func commas(n) {
+@@ -35,16 +30,6 @@ export func commas(n) {
+     return out
+ }
+ 
+-# Right-pad a string with spaces to `width` for fixed-width table columns.
+-# Strings longer than width are returned unchanged (no truncation surprises).
+-export func pad_right(text, width) {
+-    mut out := text
+-    while len(out) < width {
+-        out = out + " "
+-    }
+-    return out
+-}
+-
+ # Truthiness for the 1/0 predicate builtins (contains/has_key/...).
+ export func truthy(flag) {
+     return flag == 1 || flag == true

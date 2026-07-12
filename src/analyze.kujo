@@ -5,7 +5,6 @@
 # Nothing here mutates the repo. All multi-pass logic uses index/`while` loops
 # or single-`for` helpers so the module compiles under the checker.
 
-from src.util import iso_now
 from src.classify import classify, category_order
 from src.diffsrc import is_repo, resolve_refs, validate_diff, numstat_text, namestatus_text, untracked_list, is_binary_path, count_added_lines
 
@@ -192,7 +191,7 @@ func build_model(repo, refs, order, info) {
     return {
         "base": refs["base_label"],
         "head": refs["head_label"],
-        "generated_at": iso_now(),
+        "generated_at": now_utc(),
         "summary": summary,
         "categories": cats,
         "files": files,

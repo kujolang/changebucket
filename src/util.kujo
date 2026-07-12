@@ -4,11 +4,6 @@
 # formatting, padding for tables, and tiny predicate helpers. Kept deliberately
 # boring so the rest of the codebase can rely on it without surprises.
 
-# Current time as an ISO-8601 UTC timestamp, e.g. 2026-05-29T17:08:42Z.
-export func iso_now() {
-    return format_date(now(), "YYYY-MM-DDTHH:mm:ssZ")
-}
-
 # Thousands-separated decimal string for an integer, e.g. 1280 -> "1,280".
 # Negative numbers are handled; the sign is preserved.
 export func commas(n) {
@@ -31,16 +26,6 @@ export func commas(n) {
     }
     if neg {
         out = "-" + out
-    }
-    return out
-}
-
-# Right-pad a string with spaces to `width` for fixed-width table columns.
-# Strings longer than width are returned unchanged (no truncation surprises).
-export func pad_right(text, width) {
-    mut out := text
-    while len(out) < width {
-        out = out + " "
     }
     return out
 }
