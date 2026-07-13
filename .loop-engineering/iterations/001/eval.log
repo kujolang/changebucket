@@ -1,6 +1,6 @@
 
 ## gate: tests
-$ KUJO=${KUJO:-../kujo/target/debug/kujo} ./tests/run.sh
+$ KUJO=${KUJO:-../kujo/target/debug/kujo} KUJO_MODULE_PATH=${KUJO_MODULE_PATH:-../kujo/modules} ./tests/run.sh
 Compiler optimization: 0 constants folded, 6 dead instructions removed, 0 peephole optimizations
 
 ChangeBucket tests: 81 passed, 0 failed
