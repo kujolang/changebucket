@@ -13,34 +13,51 @@ from src.analyze import analyze
 from src.budget import empty_config, has_constraints, evaluate
 from src.render import render_text, render_markdown
 from src.util import includes
-from cli import parse
 
 VERSION := "1.0.0"
 
 # --- argument parsing ---------------------------------------------------
 
+func split_flag_token(token) {
+    raw := substring(token, 2, len(token))
+    eq := index_of(raw, "=")
+    if eq >= 0 {
+        return {"name": substring(raw, 0, eq), "value": substring(raw, eq + 1, len(raw)), "has_value": true}
+    }
+    return {"name": raw, "value": "", "has_value": false}
+}
+
 # Split tokens into positionals and flags. Names in `bool_flags` are valueless
 # switches; names in `value_flags` consume the next token as their value.
 func parse_args(tokens, bool_flags) {
-    mut spec := []
-    for name in bool_flags {
-        spec = append(spec, {"name": name, "kind": "bool"})
-    }
-    for name in value_flags() {
-        if includes(bool_flags, name) == false {
-            spec = append(spec, {"name": name, "kind": "string"})
-        }
-    }
-    parsed := parse(tokens, spec)
-    if parsed["ok"] != true {
-        return {"positionals": [], "flags": {}, "error": parsed["error"]["message"]}
-    }
-    value := parsed["value"]
     mut flags := {}
-    for occurrence in value["occurrences"] {
-        flags[occurrence["name"]] := occurrence["value"]
+    mut positionals := []
+    mut i := 0
+    while i < len(tokens) {
+        token := tokens[i]
+        if starts_with(token, "--") {
+            split_flag := split_flag_token(token)
+            name := split_flag["name"]
+            if known_flag(name, bool_flags) == false {
+                return {"positionals": [], "flags": {}, "error": "unknown option --" + name}
+            }
+            if includes(bool_flags, name) {
+                flags[name] := "true"
+            } else if split_flag["has_value"] == true {
+                flags[name] := split_flag["value"]
+            } else {
+                if i + 1 >= len(tokens) || starts_with(tokens[i + 1], "-") {
+                    return {"positionals": [], "flags": {}, "error": "missing value for --" + name}
+                }
+                flags[name] := tokens[i + 1]
+                i = i + 1
+            }
+        } else {
+            positionals = append(positionals, token)
+        }
+        i = i + 1
     }
-    return {"positionals": value["positionals"], "flags": flags}
+    return {"positionals": positionals, "flags": flags}
 }
 
 func flag(parsed, name) {
