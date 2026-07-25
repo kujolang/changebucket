@@ -48,7 +48,7 @@ passes the checker. v1.0.0.
 
 ```bash
 # The Kujo runtime lives in the (reference-only) runtime repo:
-export KUJO=/path/to/kujo/target/release/kujo
+export KUJO=kujo
 
 # Run:
 $KUJO run changebucket.kujo -- --help
