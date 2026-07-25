@@ -38,11 +38,11 @@ ChangeBucket is a small CLI written in the Kujo language. It needs the `kujo`
 runtime and `git` on your `PATH`. No network, no API keys, no build step.
 
 ```bash
-# Point KUJO at the installed Kujo command, then run the launcher:
-KUJO=kujo ./bin/changebucket --help
-
-# Or put the Kujo runtime on PATH and just:
+# Run the bundled launcher:
 ./bin/changebucket --help
+
+# Or invoke the entrypoint directly:
+kujo run changebucket.kujo -- --help
 ```
 
 Expected output starts with:
@@ -243,7 +243,7 @@ budget was checked), file-category counts, and the largest changes by churn.
 ## Tests
 
 ```bash
-KUJO=kujo ./tests/run.sh
+./tests/run.sh
 ```
 
 The suite is self-contained and filesystem-isolated: it builds throwaway git

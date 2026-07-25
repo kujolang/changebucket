@@ -47,18 +47,18 @@ passes the checker. v1.0.0.
 ## Install / test / run
 
 ```bash
-# The Kujo runtime lives in the (reference-only) runtime repo:
-export KUJO=kujo
+# Confirm Kujo is on PATH:
+kujo --version
 
 # Run:
-$KUJO run changebucket.kujo -- --help
-./bin/changebucket --help          # if KUJO is exported or the runtime is on PATH
+kujo run changebucket.kujo -- --help
+./bin/changebucket --help
 
 # Test:
-./tests/run.sh                     # honors $KUJO
+./tests/run.sh                     # honors kujo
 
 # Lint every module:
-for f in changebucket.kujo src/*.kujo tests/*.kujo; do $KUJO check "$f"; done
+for f in changebucket.kujo src/*.kujo tests/*.kujo; do kujo check "$f"; done
 ```
 
 There is **no build step** and **no package install**. `git` must be on `PATH`.
@@ -146,8 +146,8 @@ changebucket check --max-files N --max-churn N \
   local, mutate it single-level, then reassign: `e := info[path]; e["status"] := x; info[path] := e`.
 - **`test` is a reserved keyword.** Don't use it as a variable or parameter name
   (it parses as the test-framework keyword). Use `matched_test`, `is_t`, etc.
-- **`$KUJO check` rejects >1 `for` loop per function scope.** Use index/`while`
-  loops, or one `for` per helper. (The `$KUJO run` path, including tests, does
+- **`kujo check` rejects >1 `for` loop per function scope.** Use index/`while`
+  loops, or one `for` per helper. (The `kujo run` path, including tests, does
   not enforce this — but keep modules check-clean anyway.)
 - **`write_file` refuses to overwrite** an existing path. Delete first:
   `if file_exists(p) { delete_file(p) }`.
@@ -158,9 +158,9 @@ changebucket check --max-files N --max-churn N \
 
 ## Verification checklist
 
-- [ ] `for f in changebucket.kujo src/*.kujo tests/*.kujo; do $KUJO check "$f"; done` all pass
+- [ ] `for f in changebucket.kujo src/*.kujo tests/*.kujo; do kujo check "$f"; done` all pass
 - [ ] `./tests/run.sh` → "81 passed, 0 failed"
-- [ ] `$KUJO run changebucket.kujo -- --help` prints help
+- [ ] `kujo run changebucket.kujo -- --help` prints help
 - [ ] worktree analysis in a temp repo (default, `--json`, `--markdown`)
 - [ ] `check --max-files 1` in a multi-file change exits non-zero
 - [ ] non-git directory prints `error: not a git repository` and exits 1
