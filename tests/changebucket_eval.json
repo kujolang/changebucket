@@ -1,0 +1,41 @@
+{
+  "name": "changebucket-launch-readiness",
+  "version": "0.1.0",
+  "tests": [
+    {
+      "name": "ChangeBucket entrypoint help succeeds",
+      "check": "command_succeeds",
+      "params": {
+        "command": "cd /Users/robertdevore/2026/Kujolang/kujo-repos/changebucket && kujo run changebucket.kujo -- --help"
+      }
+    },
+    {
+      "name": "ChangeBucket wrapper help succeeds",
+      "check": "command_succeeds",
+      "params": {
+        "command": "cd /Users/robertdevore/2026/Kujolang/kujo-repos/changebucket && ./bin/changebucket --help"
+      }
+    },
+    {
+      "name": "ChangeBucket version succeeds",
+      "check": "command_succeeds",
+      "params": {
+        "command": "cd /Users/robertdevore/2026/Kujolang/kujo-repos/changebucket && changebucket version"
+      }
+    },
+    {
+      "name": "ChangeBucket test harness succeeds",
+      "check": "command_succeeds",
+      "params": {
+        "command": "cd /Users/robertdevore/2026/Kujolang/kujo-repos/changebucket && ./tests/run.sh"
+      }
+    },
+    {
+      "name": "ChangeBucket package metadata exists",
+      "check": "file_exists",
+      "params": {
+        "path": "/Users/robertdevore/2026/Kujolang/kujo-repos/changebucket/kujo.toml"
+      }
+    }
+  ]
+}

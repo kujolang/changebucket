@@ -1,0 +1,73 @@
+name: "ChangeBucket launch readiness review"
+goal: "Keep ChangeBucket locally release-ready as a Kujo-native, read-only git change-footprint and budget-check CLI for local review workflows."
+version: "1.0.0"
+background: "ChangeBucket is part of the Kujo prelaunch supporting-tooling matrix. The verified scope is local git diff analysis, category/churn reporting, and budget enforcement; it does not review code correctness or publish launch artifacts."
+scope: "Repository-local CLI behavior, wrapper compatibility, deterministic JSON/Markdown/text output, read-only git command boundaries, budget enforcement, docs/readiness wording, and launch evidence capture."
+non_goals:
+  - "Publishing packages or public releases"
+  - "Pushing final release tags"
+  - "Claiming code-review, security-audit, compliance, or production-enforcement coverage"
+  - "Running hosted services or live credential workflows"
+relevant_systems:
+  - "Kujo runtime"
+  - "Git"
+  - "ChangeBucket wrapper"
+  - "prelaunch launch evidence packet"
+likely_files:
+  - "README.md"
+  - "changebucket.kujo"
+  - "bin/changebucket"
+  - "src/cli.kujo"
+  - "src/analyze.kujo"
+  - "src/diffsrc.kujo"
+  - "src/classify.kujo"
+  - "src/render.kujo"
+  - "tests/changebucket_test.kujo"
+  - "tests/run.sh"
+acceptance_criteria:
+  - "`kujo check` passes for the entrypoint, source modules, and test harness."
+  - "`./tests/run.sh` passes the full deterministic CLI contract suite."
+  - "`kujo run changebucket.kujo -- --help`, `./bin/changebucket --help`, `changebucket --help`, and `changebucket version` print documented output and exit 0."
+  - "Default, JSON, Markdown, file-output, budget-failure, non-git, invalid-ref, and invalid-budget behavior remain covered by tests or smoke proof."
+  - "Docs state ChangeBucket measures footprint only and does not claim review/correctness/security/compliance authority."
+  - "ShipCheck and Concord pass locally, with ChangeBucket/PatchBrief evidence captured for meaningful launch-readiness changes."
+eval_requirements:
+  - description: "Run ChangeBucket help through the repository entrypoint."
+    check_type: "command"
+    params:
+      command: "kujo run changebucket.kujo -- --help"
+  - description: "Run ChangeBucket wrapper help."
+    check_type: "command"
+    params:
+      command: "./bin/changebucket --help"
+  - description: "Run ChangeBucket version from PATH."
+    check_type: "command"
+    params:
+      command: "changebucket version"
+  - description: "Run full ChangeBucket test harness."
+    check_type: "command"
+    params:
+      command: "./tests/run.sh"
+risks:
+  - risk: "Change footprint risk levels are heuristics, not correctness or security findings."
+    mitigation: "Keep README and launch evidence explicit that ChangeBucket only measures size, categories, and budget constraints."
+    severity: "medium"
+  - risk: "Analysis depends on local git behavior and repository state."
+    mitigation: "Use committed fixtures/tests for contracts and capture exact branch, commit, and command evidence."
+    severity: "medium"
+dependencies:
+  - "kujo on PATH or KUJO set for wrapper execution"
+  - "git on PATH"
+  - "Bash 3.2+"
+review_expectations:
+  - "Review CLI output contracts before changing report fields or risk heuristics."
+  - "Review docs for any wording that implies code review, security review, compliance, or production policy enforcement."
+human_approval_points:
+  - "Before publishing packages or public releases"
+  - "Before pushing final release tags"
+  - "Before claiming production enforcement, compliance, or security-audit coverage"
+priority: "high"
+tags:
+  - "kujo"
+  - "changebucket"
+  - "launch-readiness"
