@@ -350,6 +350,29 @@ func test_non_git() {
     check(has_key(m, "error") == 1, "non-git directory reports an error")
 }
 
+# --- public CLI success paths -------------------------------------------
+func test_cli_success() {
+    check_eq(run_cli("--help").exitcode, 0, "help exits 0")
+    check(contains(read_file(WORK + "/cli.out"), "Usage:") == 1, "help prints usage")
+
+    check_eq(run_cli("--version").exitcode, 0, "version exits 0")
+    check(contains(read_file(WORK + "/cli.out"), "changebucket 1.0.0") == 1, "version prints stable banner")
+
+    range_args := "--repo " + REPO + " --base " + C1 + " --head HEAD"
+    check_eq(run_cli(range_args + " --json").exitcode, 0, "JSON range analysis exits 0")
+    payload := parse_json(read_file(WORK + "/cli.out"))
+    check(type(payload) == "dict", "JSON CLI output parses as one object")
+    check_eq(payload["summary"]["files_changed"], 6, "JSON CLI reports the range file count")
+
+    check_eq(run_cli("check " + range_args + " --max-files 3").exitcode, 1, "check enforces an exceeded budget")
+    check_eq(run_cli(range_args + " --max-files 3").exitcode, 0, "default command reports but does not enforce budget")
+
+    output_path := WORK + "/CHANGE_BUCKET.md"
+    check_eq(run_cli(range_args + " --output " + output_path).exitcode, 0, "output option exits 0")
+    check(file_exists(output_path), "output option writes markdown file")
+    check(contains(read_file(output_path), "# ChangeBucket Report") == 1, "output file contains markdown report")
+}
+
 # --- invalid input ------------------------------------------------------
 func test_invalid_input() {
     missing := analyze(REPO, "does-not-exist", null)
@@ -387,6 +410,7 @@ test_render_exact()
 test_render()
 test_analyze_range()
 test_non_git()
+test_cli_success()
 test_invalid_input()
 teardown()
 
