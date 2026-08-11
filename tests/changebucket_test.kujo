@@ -68,6 +68,7 @@ func put(path, content) {
 WORK := join_path(env_or("TMPDIR", "/tmp"), "changebucket_selftest")
 REPO := join_path(WORK, "repo")
 PLAIN := join_path(WORK, "plain")
+SPECIAL := join_path(WORK, "special")
 KUJO_BIN := env_or("KUJO", "kujo")
 
 mut C1 := ""
@@ -77,6 +78,7 @@ func setup() {
     create_dir(WORK)
     create_dir(PLAIN)
     create_dir(REPO)
+    create_dir(SPECIAL)
     create_dir(join_path(REPO, "src"))
     create_dir(join_path(REPO, "docs"))
     sh("git -C " + REPO + " init -q")
@@ -100,6 +102,20 @@ func setup() {
     put(join_path(REPO, "Cargo.lock"), "locked\nmore\n")
     put(join_path(REPO, "docs/guide.md"), "# Guide\n")
     put(join_path(REPO, "image.png"), "pretend-binary\n")
+
+    sh("git -C " + SPECIAL + " init -q")
+    sh("git -C " + SPECIAL + " config user.email t@t.com")
+    sh("git -C " + SPECIAL + " config user.name test")
+    put(join_path(SPECIAL, "seed.txt"), "seed\n")
+    sh("git -C " + SPECIAL + " add -A")
+    sh("git -C " + SPECIAL + " commit -qm init")
+    put(join_path(SPECIAL, " leading.js"), "space\n")
+    put(join_path(SPECIAL, "tab\tname.js"), "tab\n")
+    put(join_path(SPECIAL, "line\nname.js"), "newline\n")
+    put(join_path(SPECIAL, "target.txt"), "one\ntwo\nthree\nfour\nfive\n")
+    sh("ln -s target.txt " + join_path(SPECIAL, "link.js"))
+    create_dir(join_path(SPECIAL, "nested"))
+    put(join_path(SPECIAL, "nested/new.js"), "nested\n")
 }
 
 func teardown() {
@@ -128,6 +144,33 @@ func test_classify() {
     check(has(classify("scripts/deploy.sh"), "scripts"), "scripts/ sh is scripts")
     check(has(classify("vite.config.ts"), "config"), "vite.config is config")
     check(has(classify("mystery.xyz"), "other"), "unknown is other")
+    check(has(classify("rebuild/app.js"), "generated") == false, "generated directories require a full path segment")
+    check(has(classify("undocs/guide.xyz"), "docs") == false, "docs directories require a full path segment")
+    check(has(classify("descripts/task.xyz"), "scripts") == false, "scripts directories require a full path segment")
+    check(has(classify("not.circleci/config.xyz"), "ci") == false, "CI directories require a full path segment")
+}
+
+func find_file(files, path) {
+    for item in files {
+        if item["path"] == path {
+            return item
+        }
+    }
+    return null
+}
+
+func test_special_paths() {
+    m := analyze(SPECIAL, null, null)
+    files := m["files"]
+    check(type(find_file(files, " leading.js")) == "dict", "leading-space filename is preserved")
+    check(type(find_file(files, "tab\tname.js")) == "dict", "tab filename is preserved")
+    check(type(find_file(files, "line\nname.js")) == "dict", "newline filename is preserved")
+    link := find_file(files, "link.js")
+    check(type(link) == "dict", "untracked symlink is reported")
+    check_eq(link["additions"], 1, "untracked symlink counts its link target as one line")
+
+    from_subdir := analyze(join_path(SPECIAL, "nested"), null, null)
+    check(type(find_file(from_subdir["files"], "nested/new.js")) == "dict", "subdirectory repo analysis keeps root-relative untracked paths")
 }
 
 # --- risk heuristic (pure) ---------------------------------------------
@@ -343,6 +386,19 @@ func test_render() {
     check(contains(txt, "Result: budget exceeded") == 1, "text report shows budget failure")
 }
 
+func test_render_special_path() {
+    m := sample_render_model()
+    files := m["files"]
+    first := files[0]
+    first["path"] := "src/a|b`c\n.js"
+    files[0] := first
+    m["files"] := files
+    md := render_markdown(m, empty_config(), false)
+    check(contains(md, "a\\|b`c\\n.js") == 1, "markdown escapes pipes and control characters in paths")
+    txt := render_text(m, empty_config(), false)
+    check(contains(txt, "c\\n.js (modified") == 1, "text output keeps control characters on one line")
+}
+
 # --- non-git directory --------------------------------------------------
 func test_non_git() {
     m := analyze(PLAIN, null, null)
@@ -388,6 +444,15 @@ func test_invalid_input() {
     check_eq(run_cli("check --max-files nope").exitcode, 2, "non-numeric budget exits 2")
     check_eq(run_cli("check --max-files -1").exitcode, 2, "negative budget exits 2")
     check_eq(run_cli("--base does-not-exist").exitcode, 1, "invalid git ref exits 1")
+    check_eq(run_cli("--json unexpected").exitcode, 2, "unexpected positional argument exits 2")
+    check_eq(run_cli("check unexpected").exitcode, 2, "unexpected check argument exits 2")
+    check_eq(run_cli("--json=false").exitcode, 2, "boolean option value exits 2")
+    check_eq(run_cli("--base=").exitcode, 2, "empty option value exits 2")
+    check_eq(run_cli("check --max-files 999999999999999999999999999999999999").exitcode, 2, "overflowing numeric budget exits 2")
+
+    missing_output := WORK + "/missing/report.md"
+    check_eq(run_cli("--output " + missing_output).exitcode, 1, "output write failure exits 1 without a runtime crash")
+    check(contains(read_file(WORK + "/cli.out"), "error: could not write report") == 1, "output write failure is explained")
 }
 
 # --- util ---------------------------------------------------------------
@@ -404,10 +469,12 @@ test_classify()
 test_risk()
 test_util()
 test_analyze_worktree()
+test_special_paths()
 test_budget()
 test_json()
 test_render_exact()
 test_render()
+test_render_special_path()
 test_analyze_range()
 test_non_git()
 test_cli_success()

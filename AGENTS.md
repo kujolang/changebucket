@@ -32,7 +32,7 @@ rg -n "pattern" -g '!examples/CHANGE_BUCKET.example.md'
 
 ## Current status
 
-Complete and working as of 2026-06-19. All 81 tests pass; every source file
+Complete and working as of 2026-08-11. All 112 tests pass; every source file
 passes the checker. v1.0.0.
 
 ## First files to read (in order)
@@ -159,7 +159,7 @@ changebucket check --max-files N --max-churn N \
 ## Verification checklist
 
 - [ ] `for f in changebucket.kujo src/*.kujo tests/*.kujo; do kujo check "$f"; done` all pass
-- [ ] `./tests/run.sh` → "81 passed, 0 failed"
+- [ ] `./tests/run.sh` → "112 passed, 0 failed"
 - [ ] `kujo run changebucket.kujo -- --help` prints help
 - [ ] worktree analysis in a temp repo (default, `--json`, `--markdown`)
 - [ ] `check --max-files 1` in a multi-file change exits non-zero

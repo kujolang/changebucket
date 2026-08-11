@@ -250,8 +250,8 @@ The suite is self-contained and filesystem-isolated: it builds throwaway git
 repos under `$TMPDIR`, needs no network or credentials, and touches no global
 state. It covers numstat/name-status parsing, every file category, churn and
 risk calculation, budget pass/fail, JSON validity, markdown/text rendering,
-deleted and binary files, invalid refs, CLI validation, and the non-git error
-path. As of 2026-06-19, the suite has 81 assertions.
+deleted and binary files, unusual legal git paths, invalid refs, CLI validation,
+and the non-git error path. As of 2026-08-11, the suite has 112 assertions.
 
 ## Non-goals and limitations
 
