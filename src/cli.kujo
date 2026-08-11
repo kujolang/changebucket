@@ -42,8 +42,14 @@ func parse_args(tokens, bool_flags) {
                 return {"positionals": [], "flags": {}, "error": "unknown option --" + name}
             }
             if includes(bool_flags, name) {
+                if split_flag["has_value"] == true {
+                    return {"positionals": [], "flags": {}, "error": "option --" + name + " does not take a value"}
+                }
                 flags[name] := "true"
             } else if split_flag["has_value"] == true {
+                if split_flag["value"] == "" {
+                    return {"positionals": [], "flags": {}, "error": "missing value for --" + name}
+                }
                 flags[name] := split_flag["value"]
             } else {
                 if i + 1 >= len(tokens) || starts_with(tokens[i + 1], "-") {
@@ -111,11 +117,36 @@ func is_digits(text) {
     return true
 }
 
+func trim_leading_zeroes(text) {
+    mut i := 0
+    while i + 1 < len(text) && substring(text, i, i + 1) == "0" {
+        i = i + 1
+    }
+    return substring(text, i, len(text))
+}
+
+func fits_int(text) {
+    normalized := trim_leading_zeroes(text)
+    max_int := "9223372036854775807"
+    if len(normalized) < len(max_int) {
+        return true
+    }
+    if len(normalized) > len(max_int) {
+        return false
+    }
+    return normalized <= max_int
+}
+
 func validate_numeric_flags(parsed) {
     for name in numeric_flags() {
         v := flag(parsed, name)
-        if type(v) != "null" && is_digits(v) == false {
-            return "invalid numeric value for --" + name + ": " + v
+        if type(v) != "null" {
+            if is_digits(v) == false {
+                return "invalid numeric value for --" + name + ": " + v
+            }
+            if fits_int(v) == false {
+                return "numeric value out of range for --" + name + ": " + v
+            }
         }
     }
     return ""
@@ -152,6 +183,10 @@ func build_config(parsed) {
 func run(parsed, is_check) {
     if has_key(parsed, "error") == 1 {
         print("error: " + parsed["error"])
+        return 2
+    }
+    if len(parsed["positionals"]) > 0 {
+        print("error: unexpected argument '" + parsed["positionals"][0] + "'")
         return 2
     }
     numeric_error := validate_numeric_flags(parsed)
@@ -192,10 +227,16 @@ func run(parsed, is_check) {
     if wants_md {
         md := render_markdown(m, cfg, show_budget)
         if type(output) != "null" && output != "" {
-            if file_exists(output) {
-                delete_file(output)
+            try {
+                if path_is_dir(output) {
+                    print("error: output path is a directory: " + output)
+                    return 1
+                }
+                write_file(output, md, true)
+            } except write_error {
+                print("error: could not write report to " + output + ": " + to_string(write_error))
+                return 1
             }
-            write_file(output, md)
             print("Wrote report to " + output)
             return code
         }
