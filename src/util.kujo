@@ -50,3 +50,13 @@ export func basename(path) {
     parts := split(path, "/")
     return parts[len(parts) - 1]
 }
+
+# Keep terminal/markdown reports one-record-per-line even when git paths contain
+# legal control characters. JSON output retains the exact original path.
+export func display_path(path) {
+    mut out := replace_str(path, "\\", "\\\\")
+    out = replace_str(out, "\r", "\\r")
+    out = replace_str(out, "\n", "\\n")
+    out = replace_str(out, "\t", "\\t")
+    return out
+}

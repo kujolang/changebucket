@@ -5,7 +5,7 @@
 # to false). `evaluate` returns the model with its `budget` block filled in:
 #   {"checked": true, "passed": bool, "failures": [strings]}
 
-from src.util import commas
+from src.util import commas, display_path
 
 # A budget config with everything off. The CLI overlays user flags onto this.
 export func empty_config() {
@@ -61,7 +61,7 @@ func check_banned(failures, banned, paths, label) {
     }
     mut out := failures
     for p in paths {
-        out = push(out, label + ": " + p)
+        out = push(out, label + ": " + display_path(p))
     }
     return out
 }

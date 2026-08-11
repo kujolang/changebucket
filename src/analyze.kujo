@@ -6,7 +6,7 @@
 # or single-`for` helpers so the module compiles under the checker.
 
 from src.classify import classify, category_order
-from src.diffsrc import is_repo, resolve_refs, validate_diff, numstat_text, namestatus_text, untracked_list, is_binary_path, count_added_lines
+from src.diffsrc import is_repo, repo_root, resolve_refs, validate_diff, numstat_text, namestatus_text, untracked_list, is_binary_path, count_added_lines
 
 # Map a git name-status letter to a human status word.
 func status_word(letter) {
@@ -45,13 +45,14 @@ func add_to_cats(cats, categories, path) {
 # Ingest `git diff --name-status` lines: seed each path with its status.
 func ingest_namestatus(order, info, text) {
     mut ord := order
-    lines := split(text, "\n")
-    for line in lines {
-        t := trim(line)
-        if t != "" {
-            cols := split(t, "\t")
-            letter := substring(cols[0], 0, 1)
-            path := cols[len(cols) - 1]
+    nul := parse_json("\"\\u0000\"")
+    fields := split(text, nul)
+    mut i := 0
+    while i + 1 < len(fields) {
+        status := fields[i]
+        path := fields[i + 1]
+        if status != "" && path != "" {
+            letter := substring(status, 0, 1)
             if has_key(info, path) == 0 {
                 info[path] := {"path": path, "status": status_word(letter), "additions": 0, "deletions": 0, "binary": false}
                 ord = push(ord, path)
@@ -61,6 +62,7 @@ func ingest_namestatus(order, info, text) {
                 info[path] := e
             }
         }
+        i = i + 2
     }
     return {"order": ord, "info": info}
 }
@@ -68,14 +70,16 @@ func ingest_namestatus(order, info, text) {
 # Ingest `git diff --numstat` lines: attach additions/deletions (or binary).
 func ingest_numstat(order, info, text) {
     mut ord := order
-    lines := split(text, "\n")
-    for line in lines {
-        t := trim(line)
-        if t != "" {
-            cols := split(t, "\t")
+    nul := parse_json("\"\\u0000\"")
+    records := split(text, nul)
+    for record in records {
+        if record != "" {
+            cols := split(record, "\t")
             adds := cols[0]
             dels := cols[1]
-            path := cols[len(cols) - 1]
+            # Only the first two tabs are separators; a path may itself contain
+            # tabs, so reconstruct it from all remaining fields.
+            path := join(slice(cols, 2, len(cols)), "\t")
             binary := adds == "-" || dels == "-"
             mut a := 0
             mut d := 0
@@ -205,11 +209,12 @@ export func analyze(repo, base_flag, head_flag) {
     if is_repo(repo) == false {
         return {"error": "not a git repository: " + repo}
     }
-    refs := resolve_refs(repo, base_flag, head_flag)
+    root := repo_root(repo)
+    refs := resolve_refs(root, base_flag, head_flag)
     if has_key(refs, "error") == 1 {
         return {"error": refs["error"]}
     }
-    diff_error := validate_diff(repo, refs)
+    diff_error := validate_diff(root, refs)
     if diff_error != "" {
         return {"error": diff_error}
     }
@@ -217,19 +222,19 @@ export func analyze(repo, base_flag, head_flag) {
     mut order := []
     mut info := {}
 
-    ns := ingest_namestatus(order, info, namestatus_text(repo, refs))
+    ns := ingest_namestatus(order, info, namestatus_text(root, refs))
     order = ns["order"]
     info = ns["info"]
 
-    num := ingest_numstat(order, info, numstat_text(repo, refs))
+    num := ingest_numstat(order, info, numstat_text(root, refs))
     order = num["order"]
     info = num["info"]
 
     if refs["include_untracked"] == true {
-        ut := ingest_untracked(order, info, untracked_list(repo), repo)
+        ut := ingest_untracked(order, info, untracked_list(root), root)
         order = ut["order"]
         info = ut["info"]
     }
 
-    return build_model(repo, refs, order, info)
+    return build_model(root, refs, order, info)
 }

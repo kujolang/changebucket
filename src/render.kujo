@@ -6,7 +6,7 @@
 #
 # Loops are index/`while` based so the module compiles under the checker.
 
-from src.util import commas
+from src.util import commas, display_path
 from src.classify import category_order
 
 # Friendly label for a category key.
@@ -219,7 +219,7 @@ export func render_text(model, cfg, show_budget) {
         mut li := 0
         while li < len(largest) {
             f := largest[li]
-            out = push(out, "- " + f["path"] + " (" + f["status"] + ", +" + commas(f["additions"]) + " -" + commas(f["deletions"]) + ", churn " + commas(f["churn"]) + ")")
+            out = push(out, "- " + display_path(f["path"]) + " (" + f["status"] + ", +" + commas(f["additions"]) + " -" + commas(f["deletions"]) + ", churn " + commas(f["churn"]) + ")")
             li = li + 1
         }
     }
@@ -271,6 +271,15 @@ func append_md_table(out, header, separator, rows) {
     return next
 }
 
+func markdown_code(value) {
+    safe := replace_str(display_path(value), "|", "\\|")
+    mut fence := "`"
+    while contains(safe, fence) == 1 {
+        fence = fence + "`"
+    }
+    return fence + safe + fence
+}
+
 # Clean markdown report.
 export func render_markdown(model, cfg, show_budget) {
     s := model["summary"]
@@ -281,7 +290,7 @@ export func render_markdown(model, cfg, show_budget) {
         "",
         "Generated: " + model["generated_at"],
         "",
-        "Base: `" + model["base"] + "`  Head: `" + model["head"] + "`",
+        "Base: " + markdown_code(model["base"]) + "  Head: " + markdown_code(model["head"]),
         "",
         "## Summary",
         ""
@@ -328,7 +337,7 @@ export func render_markdown(model, cfg, show_budget) {
     mut li := 0
     while li < len(largest) {
         f := largest[li]
-        largest_rows = push(largest_rows, ["`" + f["path"] + "`", f["status"], commas(f["additions"]), commas(f["deletions"]), commas(f["churn"])])
+        largest_rows = push(largest_rows, [markdown_code(f["path"]), f["status"], commas(f["additions"]), commas(f["deletions"]), commas(f["churn"])])
         li = li + 1
     }
     out = append_md_table(out, ["File", "Status", "+", "-", "Churn"], ["---", "---", "---:", "---:", "---:"], largest_rows)

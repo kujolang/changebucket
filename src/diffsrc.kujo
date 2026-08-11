@@ -77,6 +77,24 @@ export func head_commit(repo_path) {
     return null
 }
 
+# Canonical repository root. Git diff paths are root-relative even when `-C`
+# points at a subdirectory, so all file access and untracked paths must use the
+# same root or the model mixes incompatible path bases.
+export func repo_root(repo_path) {
+    r := git(repo_path, "rev-parse --show-toplevel")
+    if r.exitcode == 0 {
+        mut root := r.stdout
+        if ends_with(root, "\n") {
+            root = substring(root, 0, len(root) - 1)
+        }
+        if ends_with(root, "\r") {
+            root = substring(root, 0, len(root) - 1)
+        }
+        return root
+    }
+    return repo_path
+}
+
 # Decide what we are diffing and produce a stable description:
 #   {mode, spec, base_label, head_label, include_untracked}
 # `spec` is the argument handed to `git diff` (a single ref in worktree mode,
@@ -150,19 +168,19 @@ export func validate_diff(repo_path, refs) {
     return "invalid git revision or range '" + refs["spec"] + "': " + msg
 }
 
-# Raw `git diff --numstat` output for the resolved spec (added\tdeleted\tpath
-# per line; "-" for binary). Renames are disabled so paths are unambiguous.
+# NUL-delimited `git diff --numstat` output for the resolved spec
+# (added\tdeleted\tpath\0; "-" for binary). Renames are disabled.
 export func numstat_text(repo_path, refs) {
-    r := git(repo_path, "diff --numstat --no-renames " + diff_spec_arg(refs))
+    r := git(repo_path, "diff --numstat -z --no-renames " + diff_spec_arg(refs))
     if r.exitcode == 0 {
         return r.stdout
     }
     return ""
 }
 
-# Raw `git diff --name-status` output (status\tpath per line).
+# NUL-delimited `git diff --name-status` output (status\0path\0).
 export func namestatus_text(repo_path, refs) {
-    r := git(repo_path, "diff --name-status --no-renames " + diff_spec_arg(refs))
+    r := git(repo_path, "diff --name-status -z --no-renames " + diff_spec_arg(refs))
     if r.exitcode == 0 {
         return r.stdout
     }
@@ -172,13 +190,13 @@ export func namestatus_text(repo_path, refs) {
 # Untracked files not yet known to git (respecting .gitignore).
 export func untracked_list(repo_path) {
     mut out := []
-    r := git(repo_path, "ls-files --others --exclude-standard")
+    r := git(repo_path, "ls-files --full-name --others --exclude-standard -z")
     if r.exitcode != 0 {
         return out
     }
-    lines := split(r.stdout, "\n")
-    for line in lines {
-        name := trim(line)
+    nul := parse_json("\"\\u0000\"")
+    paths := split(r.stdout, nul)
+    for name in paths {
         if name != "" {
             out = push(out, name)
         }
@@ -207,7 +225,21 @@ export func count_added_lines(repo_path, path) {
     if file_exists(full) == false {
         return 0
     }
-    content := read_file(full)
+    # Git records a symbolic link as one line containing its target. Reading
+    # the path would instead follow it, producing wrong churn and potentially
+    # inspecting data outside the repository.
+    if path_is_symlink(full) {
+        return 1
+    }
+    if path_is_file(full) == false {
+        return 0
+    }
+    mut content := ""
+    try {
+        content = read_file(full)
+    } except read_error {
+        return 0
+    }
     if content == "" {
         return 0
     }
