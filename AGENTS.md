@@ -32,7 +32,7 @@ rg -n "pattern" -g '!examples/CHANGE_BUCKET.example.md'
 
 ## Current status
 
-Complete and working as of 2026-08-11. All 112 tests pass; every source file
+Complete and working as of 2026-09-04. All 119 Kujo assertions and 12 Python CLI regression tests pass; every source file
 passes the checker. v1.0.0.
 
 ## First files to read (in order)
@@ -43,6 +43,9 @@ passes the checker. v1.0.0.
 4. `src/classify.kujo` — file → category rules.
 5. `src/cli.kujo` — argument parsing, dispatch, exit codes.
 6. `tests/changebucket_test.kujo` — what "correct" means.
+
+The complete regression gate is `./tests/verify.sh` (Python 3 is test-only).
+The hardening receipt is `docs/audits/repository-hardening.md`.
 
 ## Install / test / run
 
@@ -86,7 +89,7 @@ examples/CHANGE_BUCKET.example.md   a real generated markdown report
 ## Architecture overview
 
 `cli.main` parses and validates args → `analyze.analyze(repo, base, head)`
-resolves and validates the git diff spec through `diffsrc`, parses `--numstat`
+resolves the git diff spec and checks each subprocess result through `diffsrc`, parses `--numstat`
 + `--name-status` (and untracked files in worktree mode), classifies each path
 (`classify`), and rolls everything into the **model** dict. If budget flags are
 present (always, under `check`),
@@ -159,7 +162,7 @@ changebucket check --max-files N --max-churn N \
 ## Verification checklist
 
 - [ ] `for f in changebucket.kujo src/*.kujo tests/*.kujo; do kujo check "$f"; done` all pass
-- [ ] `./tests/run.sh` → "112 passed, 0 failed"
+- [ ] `./tests/run.sh` → "119 passed, 0 failed"
 - [ ] `kujo run changebucket.kujo -- --help` prints help
 - [ ] worktree analysis in a temp repo (default, `--json`, `--markdown`)
 - [ ] `check --max-files 1` in a multi-file change exits non-zero

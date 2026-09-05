@@ -17,7 +17,8 @@ at a glance:
 
 It produces structured metrics and a clear report — a human-readable summary,
 JSON, or markdown. It is **read-only**: it only ever runs `git diff` /
-`git ls-files` / `git rev-parse` and never modifies your repository.
+`git ls-files` / `git rev-parse` / `git hash-object` (without `-w`).
+Analysis never modifies your repository; `--output` writes the requested report.
 User-supplied refs are validated before git runs, so bad or unsafe refs fail
 explicitly instead of being mistaken for an empty change.
 
@@ -251,7 +252,18 @@ repos under `$TMPDIR`, needs no network or credentials, and touches no global
 state. It covers numstat/name-status parsing, every file category, churn and
 risk calculation, budget pass/fail, JSON validity, markdown/text rendering,
 deleted and binary files, unusual legal git paths, invalid refs, CLI validation,
-and the non-git error path. As of 2026-08-11, the suite has 112 assertions.
+and the non-git error path. The Kujo suite has 119 assertions.
+
+Run the complete development gate (requires Python 3 for the additional
+standard-library CLI regressions):
+
+```bash
+./tests/verify.sh
+```
+
+This checks every Kujo module, runs both suites, and checks the tool-artifact
+guard. Each test run owns a unique temporary workspace. Eval metadata uses
+repository-relative paths; run it from the repository root.
 
 ## Non-goals and limitations
 
@@ -262,8 +274,20 @@ and the non-git error path. As of 2026-08-11, the suite has 112 assertions.
   plus an add, which is intentionally conservative for a footprint tool.
 - **Ref syntax is intentionally conservative.** `--base` and `--head` accept
   normal branch/tag/commit-ish values but reject whitespace, leading dashes, and
-  shell metacharacters before git runs.
+  shell metacharacters before git runs. This conservative policy is preserved
+  even though Git now receives structured arguments.
 - **Untracked binary detection is by extension**, since git's numstat cannot
-  report line counts for files it does not yet track.
+  report line counts for files it does not yet track. Symlinks (including dangling
+  links and links with binary extensions) count as one added line. An unreadable
+  or vanished untracked text file causes an explicit operational error.
+- **Git execution is bounded:** each subprocess uses the runtime's 30-second
+  timeout and a 16 MiB limit per captured stream. Incomplete output fails analysis;
+  it is never treated as a partial successful report. Git receives structured
+  arguments, so restricted Kujo runs need `process-exec` rather than `shell-exec`.
+  External diff/textconv helpers are disabled, paths are root-relative, and
+  submodule changes are included regardless of diff display configuration.
+- **Working trees are live**, not transactional snapshots. Run against a stable
+  worktree or use committed refs when concurrent writers matter. Local Git
+  configuration, including clean filters, remains trusted; this is not a sandbox.
 - **No network, no API keys, no provider dependencies**, and no dependency on
   unstable Kujo ecosystem pieces.

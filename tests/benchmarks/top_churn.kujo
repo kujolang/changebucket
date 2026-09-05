@@ -1,0 +1,17 @@
+# Reproducible renderer workload; run from the repository root.
+from src.render import top_by_churn
+mut files := []
+mut i := 0
+while i < 2000 {
+    files = push(files, {"path": to_string(i), "churn": (i * 37) % 211})
+    i = i + 1
+}
+mut runs := 0
+while runs < 3 {
+    result := top_by_churn(files, 10)
+    if len(result) != 10 || result[0]["churn"] != 210 {
+        exit(1)
+    }
+    runs = runs + 1
+}
+print("top-churn benchmark: 2000 files, top 10, 3 iterations")

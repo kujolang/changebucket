@@ -6,35 +6,35 @@
       "name": "ChangeBucket entrypoint help succeeds",
       "check": "command_succeeds",
       "params": {
-        "command": "cd /Users/robertdevore/2026/Kujolang/kujo-repos/changebucket && kujo run changebucket.kujo -- --help"
+        "command": "kujo run changebucket.kujo -- --help"
       }
     },
     {
       "name": "ChangeBucket wrapper help succeeds",
       "check": "command_succeeds",
       "params": {
-        "command": "cd /Users/robertdevore/2026/Kujolang/kujo-repos/changebucket && ./bin/changebucket --help"
+        "command": "./bin/changebucket --help"
       }
     },
     {
       "name": "ChangeBucket version succeeds",
       "check": "command_succeeds",
       "params": {
-        "command": "cd /Users/robertdevore/2026/Kujolang/kujo-repos/changebucket && changebucket version"
+        "command": "./bin/changebucket version"
       }
     },
     {
       "name": "ChangeBucket test harness succeeds",
       "check": "command_succeeds",
       "params": {
-        "command": "cd /Users/robertdevore/2026/Kujolang/kujo-repos/changebucket && ./tests/run.sh"
+        "command": "./tests/run.sh"
       }
     },
     {
       "name": "ChangeBucket package metadata exists",
       "check": "file_exists",
       "params": {
-        "path": "/Users/robertdevore/2026/Kujolang/kujo-repos/changebucket/kujo.toml"
+        "path": "kujo.toml"
       }
     }
   ]
