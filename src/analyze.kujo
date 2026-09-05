@@ -5,8 +5,9 @@
 # Nothing here mutates the repo. All multi-pass logic uses index/`while` loops
 # or single-`for` helpers so the module compiles under the checker.
 
+from src.util import display_path
 from src.classify import classify, category_order
-from src.diffsrc import is_repo, repo_root, resolve_refs, validate_diff, numstat_text, namestatus_text, untracked_list, is_binary_path, count_added_lines
+from src.diffsrc import is_repo, read_repo_root, resolve_refs, read_diff, read_untracked, read_untracked_file
 
 # Map a git name-status letter to a human status word.
 func status_word(letter) {
@@ -107,11 +108,12 @@ func ingest_untracked(order, info, files, repo) {
     mut ord := order
     for path in files {
         if path != "" && has_key(info, path) == 0 {
-            binary := is_binary_path(path)
-            mut a := 0
-            if binary == false {
-                a = count_added_lines(repo, path)
+            counted := read_untracked_file(repo, path)
+            if has_key(counted, "error") == 1 {
+                return counted
             }
+            binary := counted["binary"]
+            a := counted["lines"]
             info[path] := {"path": path, "status": "added", "additions": a, "deletions": 0, "binary": binary}
             ord = push(ord, path)
         }
@@ -207,31 +209,46 @@ func build_model(repo, refs, order, info) {
 # {"error": "..."} when the directory is not a git repository.
 export func analyze(repo, base_flag, head_flag) {
     if is_repo(repo) == false {
-        return {"error": "not a git repository: " + repo}
+        return {"error": "not a git repository: " + display_path(repo)}
     }
-    root := repo_root(repo)
+    resolved_root := read_repo_root(repo)
+    if has_key(resolved_root, "error") == 1 {
+        return resolved_root
+    }
+    root := resolved_root["root"]
     refs := resolve_refs(root, base_flag, head_flag)
     if has_key(refs, "error") == 1 {
         return {"error": refs["error"]}
     }
-    diff_error := validate_diff(root, refs)
-    if diff_error != "" {
-        return {"error": diff_error}
+    names := read_diff(root, refs, "--name-status")
+    if has_key(names, "error") == 1 {
+        return names
+    }
+    numbers := read_diff(root, refs, "--numstat")
+    if has_key(numbers, "error") == 1 {
+        return numbers
     }
 
     mut order := []
     mut info := {}
 
-    ns := ingest_namestatus(order, info, namestatus_text(root, refs))
+    ns := ingest_namestatus(order, info, names["text"])
     order = ns["order"]
     info = ns["info"]
 
-    num := ingest_numstat(order, info, numstat_text(root, refs))
+    num := ingest_numstat(order, info, numbers["text"])
     order = num["order"]
     info = num["info"]
 
     if refs["include_untracked"] == true {
-        ut := ingest_untracked(order, info, untracked_list(root), root)
+        untracked := read_untracked(root)
+        if has_key(untracked, "error") == 1 {
+            return untracked
+        }
+        ut := ingest_untracked(order, info, untracked["files"], root)
+        if has_key(ut, "error") == 1 {
+            return ut
+        }
         order = ut["order"]
         info = ut["info"]
     }

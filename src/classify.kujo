@@ -72,7 +72,7 @@ func is_test(pl, namel) {
     if contains_any(pl, ["/test/", "/tests/", "/__tests__/", "/spec/"]) {
         return true
     }
-    if starts_any(pl, ["test/", "tests/", "spec/"]) {
+    if starts_any(pl, ["test/", "tests/", "__tests__/", "spec/"]) {
         return true
     }
     if contains(namel, ".test.") == 1 || contains(namel, ".spec.") == 1 {

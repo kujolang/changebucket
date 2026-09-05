@@ -62,7 +62,8 @@ func append_text_rows(out, rows) {
 }
 
 # Files sorted by churn descending, truncated to `n`. A copy is sorted in place
-# via selection sort (no sort builtin is relied on).
+# via partial selection sort. Stop after n selections: the unsorted tail is
+# never rendered. This preserves the original selection-sort tie ordering.
 export func top_by_churn(files, n) {
     mut arr := []
     mut i := 0
@@ -71,7 +72,7 @@ export func top_by_churn(files, n) {
         i = i + 1
     }
     mut a := 0
-    while a < len(arr) {
+    while a < len(arr) && a < n {
         mut best := a
         mut b := a + 1
         while b < len(arr) {
@@ -194,8 +195,8 @@ export func render_text(model, cfg, show_budget) {
     out = append_lines(out, [
         "ChangeBucket",
         "",
-        "Base: " + model["base"],
-        "Head: " + model["head"],
+        "Base: " + display_path(model["base"]),
+        "Head: " + display_path(model["head"]),
         "",
         "Summary:"
     ])
@@ -280,6 +281,20 @@ func markdown_code(value) {
     return fence + safe + fence
 }
 
+# Budget messages contain repository filenames. Encode Markdown/HTML syntax
+# without changing ordinary prose or the structured JSON failure messages.
+func markdown_prose(value) {
+    mut safe := replace_str(value, "&", "&amp;")
+    symbols := ["<", ">", "`", "[", "]", "*", "_", "|", "\\"]
+    entities := ["&lt;", "&gt;", "&#96;", "&#91;", "&#93;", "&#42;", "&#95;", "&#124;", "&#92;"]
+    mut i := 0
+    while i < len(symbols) {
+        safe = replace_str(safe, symbols[i], entities[i])
+        i = i + 1
+    }
+    return safe
+}
+
 # Clean markdown report.
 export func render_markdown(model, cfg, show_budget) {
     s := model["summary"]
@@ -310,7 +325,7 @@ export func render_markdown(model, cfg, show_budget) {
         if len(failures) > 0 {
             mut fi := 0
             while fi < len(failures) {
-                out = push(out, "- " + failures[fi])
+                out = push(out, "- " + markdown_prose(failures[fi]))
                 fi = fi + 1
             }
             out = push(out, "")

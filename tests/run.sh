@@ -9,4 +9,6 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 KUJO="${KUJO:-kujo}"
 
 cd "$PROJECT_DIR"
-exec "$KUJO" run "$PROJECT_DIR/tests/changebucket_test.kujo"
+TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/changebucket-run.XXXXXX")"
+trap 'rm -rf -- "$TEST_ROOT"' EXIT
+TMPDIR="$TEST_ROOT" "$KUJO" run "$PROJECT_DIR/tests/changebucket_test.kujo"

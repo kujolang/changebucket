@@ -16,7 +16,7 @@
 from src.classify import classify
 from src.analyze import analyze, risk_level
 from src.budget import empty_config, evaluate, has_constraints
-from src.render import render_text, render_markdown
+from src.render import render_text, render_markdown, top_by_churn
 from src.util import commas
 
 mut passed := 0
@@ -49,12 +49,25 @@ func has(arr, value) {
     return false
 }
 
+func shq(value) {
+    return "'" + replace_str(value, "'", "'\\''") + "'"
+}
+
+func temp_workspace() {
+    result := execute_status("mktemp -d " + shq(join_path(env_or("TMPDIR", "/tmp"), "changebucket.XXXXXX")))
+    if result.exitcode != 0 {
+        print("error: cannot create test workspace")
+        exit(1)
+    }
+    return trim(result.stdout)
+}
+
 func sh(cmd) {
     return execute_status(cmd)
 }
 
 func run_cli(argline) {
-    return sh(KUJO_BIN + " run changebucket.kujo -- " + argline + " > " + WORK + "/cli.out 2>&1")
+    return sh(shq(KUJO_BIN) + " run changebucket.kujo -- " + argline + " > " + shq(WORK + "/cli.out") + " 2>&1")
 }
 
 # write_file refuses to overwrite an existing path on this runtime, so replace.
@@ -65,7 +78,7 @@ func put(path, content) {
     write_file(path, content)
 }
 
-WORK := join_path(env_or("TMPDIR", "/tmp"), "changebucket_selftest")
+WORK := temp_workspace()
 REPO := join_path(WORK, "repo")
 PLAIN := join_path(WORK, "plain")
 SPECIAL := join_path(WORK, "special")
@@ -74,58 +87,61 @@ KUJO_BIN := env_or("KUJO", "kujo")
 mut C1 := ""
 
 func setup() {
-    sh("rm -rf " + WORK)
-    create_dir(WORK)
     create_dir(PLAIN)
     create_dir(REPO)
     create_dir(SPECIAL)
     create_dir(join_path(REPO, "src"))
     create_dir(join_path(REPO, "docs"))
-    sh("git -C " + REPO + " init -q")
-    sh("git -C " + REPO + " config user.email t@t.com")
-    sh("git -C " + REPO + " config user.name test")
+    sh("git -C " + shq(REPO) + " init -q")
+    sh("git -C " + shq(REPO) + " config user.email t@t.com")
+    sh("git -C " + shq(REPO) + " config user.name test")
+    sh("git -C " + shq(REPO) + " config commit.gpgsign false")
+    sh("git -C " + shq(REPO) + " config core.hooksPath /dev/null")
     # initial commit
     put(join_path(REPO, "src/app.js"), "a\nb\nc\n")
     put(join_path(REPO, "src/old.js"), "x\ny\n")
     put(join_path(REPO, "package.json"), "{\"name\":\"x\"}\n")
     put(join_path(REPO, "Cargo.lock"), "locked\n")
-    sh("git -C " + REPO + " add -A")
-    sh("git -C " + REPO + " commit -qm init")
-    r := sh("git -C " + REPO + " rev-parse HEAD")
+    sh("git -C " + shq(REPO) + " add -A")
+    sh("git -C " + shq(REPO) + " commit -qm init")
+    r := sh("git -C " + shq(REPO) + " rev-parse HEAD")
     C1 = trim(r.stdout)
     # worktree changes:
     #   app.js modified (+2), old.js deleted (-2), package.json modified (+1),
     #   Cargo.lock modified (+1), docs/guide.md added (+1), image.png added (binary)
     put(join_path(REPO, "src/app.js"), "a\nb\nc\nd\ne\n")
-    sh("rm " + join_path(REPO, "src/old.js"))
+    sh("rm " + shq(join_path(REPO, "src/old.js")))
     put(join_path(REPO, "package.json"), "{\"name\":\"x\",\"v\":2}\n")
     put(join_path(REPO, "Cargo.lock"), "locked\nmore\n")
     put(join_path(REPO, "docs/guide.md"), "# Guide\n")
     put(join_path(REPO, "image.png"), "pretend-binary\n")
 
-    sh("git -C " + SPECIAL + " init -q")
-    sh("git -C " + SPECIAL + " config user.email t@t.com")
-    sh("git -C " + SPECIAL + " config user.name test")
+    sh("git -C " + shq(SPECIAL) + " init -q")
+    sh("git -C " + shq(SPECIAL) + " config user.email t@t.com")
+    sh("git -C " + shq(SPECIAL) + " config user.name test")
+    sh("git -C " + shq(SPECIAL) + " config commit.gpgsign false")
+    sh("git -C " + shq(SPECIAL) + " config core.hooksPath /dev/null")
     put(join_path(SPECIAL, "seed.txt"), "seed\n")
-    sh("git -C " + SPECIAL + " add -A")
-    sh("git -C " + SPECIAL + " commit -qm init")
+    sh("git -C " + shq(SPECIAL) + " add -A")
+    sh("git -C " + shq(SPECIAL) + " commit -qm init")
     put(join_path(SPECIAL, " leading.js"), "space\n")
     put(join_path(SPECIAL, "tab\tname.js"), "tab\n")
     put(join_path(SPECIAL, "line\nname.js"), "newline\n")
     put(join_path(SPECIAL, "target.txt"), "one\ntwo\nthree\nfour\nfive\n")
-    sh("ln -s target.txt " + join_path(SPECIAL, "link.js"))
+    sh("ln -s target.txt " + shq(join_path(SPECIAL, "link.js")))
     create_dir(join_path(SPECIAL, "nested"))
     put(join_path(SPECIAL, "nested/new.js"), "nested\n")
 }
 
 func teardown() {
-    sh("rm -rf " + WORK)
+    sh("rm -rf " + shq(WORK))
 }
 
 # --- classification (pure) ---------------------------------------------
 func test_classify() {
     check(has(classify("src/app.ts"), "source"), "ts under src is source")
     check(has(classify("packages/core/index.rs"), "source"), "rs is source")
+    check(has(classify("__tests__/plain.js"), "tests"), "root __tests__ is tests")
     check(has(classify("tests/foo.test.js"), "tests"), "*.test.js is tests")
     check(has(classify("tests/foo.test.js"), "source") == false, "test file not also source")
     check(has(classify("src/widget_test.go"), "tests"), "_test.go is tests")
@@ -209,9 +225,9 @@ func test_analyze_worktree() {
 
 # --- analyze a commit range --------------------------------------------
 func test_analyze_range() {
-    sh("git -C " + REPO + " add -A")
-    sh("git -C " + REPO + " commit -qm change")
-    r := sh("git -C " + REPO + " rev-parse HEAD")
+    sh("git -C " + shq(REPO) + " add -A")
+    sh("git -C " + shq(REPO) + " commit -qm change")
+    r := sh("git -C " + shq(REPO) + " rev-parse HEAD")
     c2 := trim(r.stdout)
     m := analyze(REPO, C1, c2)
     s := m["summary"]
@@ -414,7 +430,7 @@ func test_cli_success() {
     check_eq(run_cli("--version").exitcode, 0, "version exits 0")
     check(contains(read_file(WORK + "/cli.out"), "changebucket 1.0.0") == 1, "version prints stable banner")
 
-    range_args := "--repo " + REPO + " --base " + C1 + " --head HEAD"
+    range_args := "--repo " + shq(REPO) + " --base " + C1 + " --head HEAD"
     check_eq(run_cli(range_args + " --json").exitcode, 0, "JSON range analysis exits 0")
     payload := parse_json(read_file(WORK + "/cli.out"))
     check(type(payload) == "dict", "JSON CLI output parses as one object")
@@ -424,7 +440,7 @@ func test_cli_success() {
     check_eq(run_cli(range_args + " --max-files 3").exitcode, 0, "default command reports but does not enforce budget")
 
     output_path := WORK + "/CHANGE_BUCKET.md"
-    check_eq(run_cli(range_args + " --output " + output_path).exitcode, 0, "output option exits 0")
+    check_eq(run_cli(range_args + " --output " + shq(output_path)).exitcode, 0, "output option exits 0")
     check(file_exists(output_path), "output option writes markdown file")
     check(contains(read_file(output_path), "# ChangeBucket Report") == 1, "output file contains markdown report")
 }
@@ -451,7 +467,7 @@ func test_invalid_input() {
     check_eq(run_cli("check --max-files 999999999999999999999999999999999999").exitcode, 2, "overflowing numeric budget exits 2")
 
     missing_output := WORK + "/missing/report.md"
-    check_eq(run_cli("--output " + missing_output).exitcode, 1, "output write failure exits 1 without a runtime crash")
+    check_eq(run_cli("--output " + shq(missing_output)).exitcode, 1, "output write failure exits 1 without a runtime crash")
     check(contains(read_file(WORK + "/cli.out"), "error: could not write report") == 1, "output write failure is explained")
 }
 
@@ -463,10 +479,22 @@ func test_util() {
     check_eq(commas(0), "0", "commas handles zero")
 }
 
+# Preserve selection-sort ordering, including ties displaced by earlier swaps.
+func test_top_churn() {
+    files := [{"path": "a", "churn": 1}, {"path": "b", "churn": 1}, {"path": "c", "churn": 3}, {"path": "d", "churn": 2}]
+    check_eq(to_json(top_by_churn(files, 3)), to_json([files[2], files[3], files[0]]), "top churn preserves tie ordering")
+    check_eq(len(top_by_churn(files, 0)), 0, "zero top rows")
+    check_eq(len(top_by_churn(files, -1)), 0, "negative top rows")
+    check_eq(len(top_by_churn([], 5)), 0, "empty top rows")
+    check_eq(len(top_by_churn(files, 20)), 4, "top rows bounded by input")
+    check_eq(files[0]["path"], "a", "top churn does not mutate input")
+}
+
 # --- run all ------------------------------------------------------------
 setup()
 test_classify()
 test_risk()
+test_top_churn()
 test_util()
 test_analyze_worktree()
 test_special_paths()
