@@ -1,0 +1,29 @@
+{
+  "workload": "tests/benchmarks/top_churn.kujo: 2000 files, top 10, 3 iterations",
+  "command": "/usr/bin/time -p kujo run tests/benchmarks/top_churn.kujo",
+  "samples_per_revision": 1,
+  "baseline_sha": "6fcaf41e7ca6c317ebb3b3408b4d185e76fb1640",
+  "implementation_sha": "21a67978b18e280e4233f28ab6394d80b03662d6",
+  "runtime": "kujo 1.0.0",
+  "git": "git version 2.42.0",
+  "platform": "macOS-26.3.1-x86_64-i386-64bit",
+  "before": {
+    "real_seconds": 60.11,
+    "user_seconds": 49.51,
+    "system_seconds": 2.71
+  },
+  "after": {
+    "real_seconds": 8.51,
+    "user_seconds": 6.74,
+    "system_seconds": 1.62
+  },
+  "scope": "Renderer selection benchmark including Kujo process startup; not an end-to-end CLI latency claim. Single local samples, not a statistical estimate.",
+  "normal_worktree_git_calls": {
+    "before": 7,
+    "after": 6
+  },
+  "diff_calls": {
+    "before": 3,
+    "after": 2
+  }
+}

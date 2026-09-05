@@ -1,0 +1,18 @@
+check passed: changebucket.kujo
+check passed: src/analyze.kujo
+check passed: src/budget.kujo
+check passed: src/classify.kujo
+check passed: src/cli.kujo
+check passed: src/diffsrc.kujo
+check passed: src/render.kujo
+check passed: src/util.kujo
+check passed: tests/changebucket_test.kujo
+check passed: tests/benchmarks/top_churn.kujo
+
+ChangeBucket tests: 119 passed, 0 failed
+............
+----------------------------------------------------------------------
+Ran 12 tests in 13.009s
+
+OK
+[tool-artifacts] OK: all source rules are present and no pushed commit contains a listed artifact
