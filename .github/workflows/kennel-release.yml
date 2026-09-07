@@ -1,0 +1,9 @@
+name: Build official Kennel release package
+on:
+  release:
+    types: [published]
+permissions:
+  contents: read
+jobs:
+  package:
+    uses: kujolang/kennel/.github/workflows/build-kennel-release.yml@main
