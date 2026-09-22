@@ -51,9 +51,16 @@ func ingest_namestatus(order, info, text) {
     mut i := 0
     while i + 1 < len(fields) {
         status := fields[i]
-        path := fields[i + 1]
+        letter := substring(status, 0, 1)
+        mut path := fields[i + 1]
+        mut previous := ""
+        mut advance := 2
+        if (letter == "R" || letter == "C") && i + 2 < len(fields) {
+            previous = path
+            path = fields[i + 2]
+            advance = 3
+        }
         if status != "" && path != "" {
-            letter := substring(status, 0, 1)
             if has_key(info, path) == 0 {
                 info[path] := {"path": path, "status": status_word(letter), "additions": 0, "deletions": 0, "binary": false}
                 ord = push(ord, path)
@@ -62,8 +69,13 @@ func ingest_namestatus(order, info, text) {
                 e["status"] := status_word(letter)
                 info[path] := e
             }
+            if previous != "" {
+                e := info[path]
+                e["previous_path"] := previous
+                info[path] := e
+            }
         }
-        i = i + 2
+        i = i + advance
     }
     return {"order": ord, "info": info}
 }
@@ -73,14 +85,20 @@ func ingest_numstat(order, info, text) {
     mut ord := order
     nul := parse_json("\"\\u0000\"")
     records := split(text, nul)
-    for record in records {
+    mut i := 0
+    while i < len(records) {
+        record := records[i]
         if record != "" {
             cols := split(record, "\t")
             adds := cols[0]
             dels := cols[1]
             # Only the first two tabs are separators; a path may itself contain
             # tabs, so reconstruct it from all remaining fields.
-            path := join(slice(cols, 2, len(cols)), "\t")
+            mut path := join(slice(cols, 2, len(cols)), "\t")
+            if path == "" && i + 2 < len(records) {
+                path = records[i + 2]
+                i = i + 2
+            }
             binary := adds == "-" || dels == "-"
             mut a := 0
             mut d := 0
@@ -99,6 +117,7 @@ func ingest_numstat(order, info, text) {
                 info[path] := e
             }
         }
+        i = i + 1
     }
     return {"order": ord, "info": info}
 }
@@ -194,7 +213,7 @@ func build_model(repo, refs, order, info) {
         "risk_level": risk
     }
 
-    return {
+    mut model := {
         "base": refs["base_label"],
         "head": refs["head_label"],
         "generated_at": now_utc(),
@@ -203,11 +222,44 @@ func build_model(repo, refs, order, info) {
         "files": files,
         "budget": {"checked": false, "passed": true, "failures": []}
     }
+    if refs["detect_renames"] == true || refs["by_directory"] == true {
+        model["schema_version"] := 2
+    }
+    if refs["by_directory"] == true {
+        model["directories"] := directory_totals(files)
+    }
+    return model
+}
+
+# Optional v2 grouping: one row per top-level directory, root files under ".".
+func directory_totals(files) {
+    mut dirs := {}
+    for f in files {
+        parts := split(f["path"], "/")
+        mut name := "."
+        if len(parts) > 1 {
+            name = parts[0] + "/"
+        }
+        if has_key(dirs, name) == 0 {
+            dirs[name] := {"files_changed": 0, "lines_added": 0, "lines_deleted": 0, "total_churn": 0}
+        }
+        row := dirs[name]
+        row["files_changed"] := row["files_changed"] + 1
+        row["lines_added"] := row["lines_added"] + f["additions"]
+        row["lines_deleted"] := row["lines_deleted"] + f["deletions"]
+        row["total_churn"] := row["total_churn"] + f["churn"]
+        dirs[name] := row
+    }
+    return dirs
 }
 
 # Top-level: produce the analysis model for `repo` over the requested refs, or
 # {"error": "..."} when the directory is not a git repository.
 export func analyze(repo, base_flag, head_flag) {
+    return analyze_with_options(repo, base_flag, head_flag, {"detect_renames": false, "by_directory": false})
+}
+
+export func analyze_with_options(repo, base_flag, head_flag, options) {
     if is_repo(repo) == false {
         return {"error": "not a git repository: " + display_path(repo)}
     }
@@ -220,6 +272,8 @@ export func analyze(repo, base_flag, head_flag) {
     if has_key(refs, "error") == 1 {
         return {"error": refs["error"]}
     }
+    refs["detect_renames"] := options["detect_renames"]
+    refs["by_directory"] := options["by_directory"]
     names := read_diff(root, refs, "--name-status")
     if has_key(names, "error") == 1 {
         return names

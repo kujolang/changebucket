@@ -161,7 +161,11 @@ export func read_diff(repo_path, refs, format) {
     if format != "--name-status" && format != "--numstat" {
         return {"error": "unsupported git diff format"}
     }
-    r := git(repo_path, ["diff", format, "-z", "--no-renames", "--no-ext-diff", "--no-textconv", "--no-relative", "--ignore-submodules=none", refs["spec"], "--"])
+    mut rename_flag := "--no-renames"
+    if has_key(refs, "detect_renames") == 1 && refs["detect_renames"] == true {
+        rename_flag = "--find-renames"
+    }
+    r := git(repo_path, ["diff", format, "-z", rename_flag, "--no-ext-diff", "--no-textconv", "--no-relative", "--ignore-submodules=none", refs["spec"], "--"])
     if r["exitcode"] != 0 {
         msg := display_path(trim(r["stderr"]))
         return {"error": "invalid git revision or range '" + display_path(refs["spec"]) + "': git diff failed: " + msg}
@@ -230,7 +234,9 @@ export func is_binary_path(path) {
     return false
 }
 
-# Count untracked text additions; report read failures to the analysis caller.
+# Count untracked text additions with bounded 64 KiB reads. Each read opens the
+# path independently; compare observed length to the initial size so a file
+# truncated during analysis cannot silently lower the budget.
 export func read_added_lines(repo_path, path) {
     try {
         full := join_path(repo_path, path)
@@ -243,16 +249,31 @@ export func read_added_lines(repo_path, path) {
         if path_is_file(full) == false {
             return {"error": "cannot read untracked file: " + display_path(path)}
         }
-        content := read_file(full)
-        if content == "" {
-            return {"lines": 0}
+        size := file_size(full)
+        mut offset := 0
+        mut lines := 0
+        mut final_newline := true
+        while offset < size {
+            mut count := 65536
+            if size - offset < count {
+                count = size - offset
+            }
+            chunk := io_read_at(full, offset, count)
+            if len(chunk) != count {
+                return {"error": "untracked file changed during analysis: " + display_path(path)}
+            }
+            decoded := decode_text_lossy(chunk, "utf-8", 196608)
+            lines = lines + len(split(decoded, "\n")) - 1
+            final_newline = ends_with(decoded, "\n")
+            offset = offset + count
         }
-        parts := split(content, "\n")
-        n := len(parts)
-        if parts[n - 1] == "" {
-            return {"lines": n - 1}
+        if file_size(full) != size {
+            return {"error": "untracked file changed during analysis: " + display_path(path)}
         }
-        return {"lines": n}
+        if size > 0 && final_newline == false {
+            lines = lines + 1
+        }
+        return {"lines": lines}
     } except inspect_error {
         return {"error": "cannot read untracked file: " + display_path(path)}
     }
@@ -279,6 +300,14 @@ export func read_untracked_file(repo_path, path) {
             if path_is_file(full) == false {
                 return {"error": "cannot read untracked file: " + display_path(path)}
             }
+            return {"lines": 0, "binary": true}
+        }
+        # Git's default binary heuristic checks for NUL in the first 8000
+        # bytes. Preserve extension-based recognition as a conservative
+        # fallback for known binary types without a NUL marker.
+        probe := io_read_at(full, 0, 8000)
+        decoded_probe := decode_text_lossy(probe, "utf-8", 24000)
+        if contains(decoded_probe, parse_json("\"\\u0000\"")) == 1 {
             return {"lines": 0, "binary": true}
         }
         result := read_added_lines(repo_path, path)

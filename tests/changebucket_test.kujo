@@ -142,6 +142,8 @@ func test_classify() {
     check(has(classify("src/app.ts"), "source"), "ts under src is source")
     check(has(classify("packages/core/index.rs"), "source"), "rs is source")
     check(has(classify("__tests__/plain.js"), "tests"), "root __tests__ is tests")
+    check(has(classify("fuzz/corpus/lexer/basic_valid.kujo"), "tests"), "fuzz corpus is test data")
+    check(has(classify("fuzz/corpus/lexer/basic_valid.kujo"), "source") == false, "fuzz corpus is not production source")
     check(has(classify("tests/foo.test.js"), "tests"), "*.test.js is tests")
     check(has(classify("tests/foo.test.js"), "source") == false, "test file not also source")
     check(has(classify("src/widget_test.go"), "tests"), "_test.go is tests")

@@ -69,6 +69,9 @@ func eq_any(s, vals) {
 # --- per-category predicates --------------------------------------------
 
 func is_test(pl, namel) {
+    if contains(pl, "/fuzz/corpus/") == 1 || starts_with(pl, "fuzz/corpus/") {
+        return true
+    }
     if contains_any(pl, ["/test/", "/tests/", "/__tests__/", "/spec/"]) {
         return true
     }

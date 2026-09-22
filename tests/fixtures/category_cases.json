@@ -1,0 +1,9 @@
+[
+  {"path": "ai-chat/package.json", "categories": ["config", "dependency_manifests"]},
+  {"path": "ssg/tests/ability_pack_tests.kujo", "categories": ["tests"]},
+  {"path": "ai-sdk/scripts/benchmark_quality_gate.kujo", "categories": ["source", "scripts"]},
+  {"path": "kujo/fuzz/corpus/lexer/basic_valid.kujo", "categories": ["tests"]},
+  {"path": "kujo/tools/vscode-kujo-extension/package.json", "categories": ["config", "dependency_manifests"]},
+  {"path": "ssg/.github/workflows/ci.yml", "categories": ["ci"]},
+  {"path": "kujo/vendor/tiny_http-0.12.0/Cargo.toml", "categories": ["config", "dependency_manifests", "generated"]}
+]

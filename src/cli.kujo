@@ -9,7 +9,7 @@
 #   1  operational failure (not a git repo), OR a `check` whose budget failed
 #   2  usage error (unknown command)
 
-from src.analyze import analyze
+from src.analyze import analyze_with_options
 from src.budget import empty_config, has_constraints, evaluate
 from src.render import render_text, render_markdown
 from src.util import includes, display_path
@@ -87,7 +87,7 @@ func has_flag(parsed, name) {
 
 # The set of valueless boolean flags ChangeBucket understands.
 func bool_flags() {
-    return ["json", "markdown", "no-deletes", "no-dependency-changes", "no-lockfile-changes", "no-config-changes", "no-generated-changes"]
+    return ["json", "markdown", "detect-renames", "by-directory", "no-deletes", "no-dependency-changes", "no-lockfile-changes", "no-config-changes", "no-generated-changes"]
 }
 
 func value_flags() {
@@ -194,12 +194,17 @@ func run(parsed, is_check) {
         print("error: " + display_path(numeric_error))
         return 2
     }
+    if has_flag(parsed, "json") && (has_flag(parsed, "markdown") || has_flag(parsed, "output")) {
+        print("error: --json cannot be combined with --markdown or --output")
+        return 2
+    }
 
     repo := flag_or(parsed, "repo", ".")
     base := flag(parsed, "base")
     head := flag(parsed, "head")
 
-    model := analyze(repo, base, head)
+    options := {"detect_renames": has_flag(parsed, "detect-renames"), "by_directory": has_flag(parsed, "by-directory")}
+    model := analyze_with_options(repo, base, head, options)
     if type(model) == "dict" && has_key(model, "error") == 1 {
         print("error: " + model["error"])
         return 1
@@ -232,7 +237,7 @@ func run(parsed, is_check) {
                     print("error: output path is a directory: " + display_path(output))
                     return 1
                 }
-                write_file(output, md, true)
+                write_file_atomic(output, md, true)
             } except write_error {
                 print("error: could not write report to " + display_path(output) + ": " + display_path(to_string(write_error)))
                 return 1
@@ -275,6 +280,8 @@ func print_help() {
         "  --json            Emit machine-readable JSON only",
         "  --markdown        Emit a markdown report",
         "  --output <file>   Write a markdown report to a file",
+        "  --detect-renames  Count Git-detected renames as moves (v2 report)",
+        "  --by-directory    Include top-level directory totals (v2 report)",
         "",
         "Budget options (informational on the default command; enforced under `check`):",
         "  --max-files <n>",
