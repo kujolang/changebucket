@@ -17,7 +17,7 @@ def main():
         package = root / "changebucket"
         (package / "bin").mkdir(parents=True)
         (package / "src").mkdir()
-        for name in ("changebucket.kujo", "kujo.toml", "VERSION", "LICENSE"):
+        for name in ("changebucket.kujo", "kujo.toml", "kennel.toml", "VERSION", "LICENSE"):
             shutil.copy2(SOURCE / name, package / name)
         shutil.copy2(SOURCE / "bin/changebucket", package / "bin/changebucket")
         for module in (SOURCE / "src").glob("*.kujo"):

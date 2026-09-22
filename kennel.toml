@@ -1,0 +1,15 @@
+[package]
+name = "changebucket"
+version = "1.1.0"
+description = "Read-only Git change-footprint analysis and budget checks in Kujo."
+license = "MIT"
+repository = "https://github.com/kujolang/changebucket"
+readme = "README.md"
+
+[kujo]
+minimum_version = "1.4.0"
+entry = "changebucket.kujo"
+sources = ["changebucket.kujo", "src", "bin"]
+includes = ["README.md", "CHANGELOG.md", "VERSION", "kujo.toml"]
+
+[dependencies]

@@ -14,7 +14,7 @@ from src.budget import empty_config, has_constraints, evaluate
 from src.render import render_text, render_markdown
 from src.util import includes, display_path
 
-VERSION := "1.0.0"
+VERSION := "1.1.0"
 
 # --- argument parsing ---------------------------------------------------
 

@@ -441,7 +441,7 @@ func test_cli_success() {
     check(contains(read_file(WORK + "/cli.out"), "Usage:") == 1, "help prints usage")
 
     check_eq(run_cli("--version").exitcode, 0, "version exits 0")
-    check(contains(read_file(WORK + "/cli.out"), "changebucket 1.0.0") == 1, "version prints stable banner")
+    check(contains(read_file(WORK + "/cli.out"), "changebucket 1.1.0") == 1, "version prints stable banner")
 
     range_args := "--repo " + shq(REPO) + " --base " + C1 + " --head HEAD"
     check_eq(run_cli(range_args + " --json").exitcode, 0, "JSON range analysis exits 0")

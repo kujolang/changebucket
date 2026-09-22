@@ -4,6 +4,9 @@ All notable changes to ChangeBucket are documented here.
 
 ## Unreleased
 
+## [1.1.0] - 2026-09-22
+
+- Add an official Kennel package manifest for the published-release builder.
 - Add a pinned, checksum-verified Kujo 1.4.0 four-platform CI regression gate
   and a clean source-package launcher smoke test.
 - Stream untracked text in bounded chunks and probe unknown formats for NUL
@@ -25,7 +28,7 @@ All notable changes to ChangeBucket are documented here.
 - Limit largest-change selection to the requested rows while retaining ordering.
 - Add isolated concurrent-safe tests, CLI failure regressions, and `tests/verify.sh`.
 
-- Added launch-readiness Spec and Eval metadata for the Kujo prelaunch review.
+- Add launch-readiness Spec and Eval metadata for the Kujo prelaunch review.
 
 ## [1.0.0] - 2026-06-27
 

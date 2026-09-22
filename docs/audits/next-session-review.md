@@ -54,9 +54,8 @@ semantic code reviewer.
    and verified the official macOS x64 archive, then passed help and JSON
    analysis. `tests/release_smoke.py` also copies only the necessary package
    files into a clean directory and exercises the launcher on all four CI
-   runners. The existing GitHub v1.0.0 release has no downloadable ChangeBucket
-   asset; publishing a new release is separate from this source-distribution
-   verification and was not performed.
+   runners. The GitHub v1.0.0 release had no downloadable ChangeBucket asset;
+   source-distribution verification is separate from packaging a new release.
 5. **P2 — Evaluate category coverage with real repositories. Complete.**
    `tests/fixtures/category_cases.json` captures seven paths verified present
    in `ai-chat`, `ssg`, `ai-sdk`, and `kujo`. The corpus caught one false negative:
@@ -86,5 +85,6 @@ semantic code reviewer.
 Every numbered item above has a source-backed implementation or explicit
 scope decision and verification evidence. This supports a production-shaped
 Git footprint CLI on the four tested host targets, not a universal enterprise
-certification. A published ChangeBucket release artifact and transactional
-snapshots of concurrently edited worktrees remain outside the completed scope.
+certification. Transactional snapshots of concurrently edited worktrees remain
+outside the completed scope. The v1.1.0 release packages the tested source
+layout; the release publisher is verified separately from this audit.

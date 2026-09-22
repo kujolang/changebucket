@@ -1,6 +1,6 @@
 # ChangeBucket
 
-[![Version](https://img.shields.io/badge/version-1.0.0-black)](https://github.com/kujolang/changebucket)
+[![Version](https://img.shields.io/badge/version-1.1.0-black)](https://github.com/kujolang/changebucket/releases/tag/v1.1.0)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 [![built with Kujo](https://img.shields.io/badge/built%20with-Kujo-white.svg)](https://github.com/kujolang/kujo)
 
@@ -56,7 +56,7 @@ For a fresh macOS Intel installation (adjust the archive and hash for your
 platform using the [official checksum list](https://github.com/kujolang/kujo/releases/download/v1.4.0/checksums.txt)):
 
 ```bash
-git clone https://github.com/kujolang/changebucket.git
+git clone --branch v1.1.0 --depth 1 https://github.com/kujolang/changebucket.git
 cd changebucket
 mkdir -p .local/kujo
 curl -fL -o .local/kujo/runtime.tar.gz \
@@ -69,6 +69,10 @@ KUJO="$PWD/.local/kujo/kujo" ./bin/changebucket --help
 ```
 
 The `.local/` path is a local installation directory, not part of this repo.
+The [v1.1.0 release](https://github.com/kujolang/changebucket/releases/tag/v1.1.0)
+distributes ChangeBucket as source; its GitHub source archives do not bundle the
+Kujo runtime. Install the runtime separately as shown above.
+
 For repeatable CI installation on all four supported targets, see the
 [pinned matrix workflow](.github/workflows/full-regression.yml). A clean
 source-package layout is exercised by `tests/release_smoke.py`.
@@ -84,7 +88,7 @@ kujo run changebucket.kujo -- --help
 Expected output starts with:
 
 ```text
-changebucket 1.0.0 — measure the footprint of a code change
+changebucket 1.1.0 — measure the footprint of a code change
 
 Usage:
 ```
@@ -98,9 +102,10 @@ directory unless you pass `--repo`.
 `changebucket.kujo` is the required thin Kujo entrypoint; `bin/changebucket`
 is its portable launcher. Runtime implementation lives in `src/`, tests in
 `tests/`, the generated report example in `examples/`, and audit material in
-`docs/audits/`. Root-level `kujo.toml`, `VERSION`, `LICENSE`, README, changelog,
-contribution guide, and Spec metadata serve packaging, legal, or discovery
-purposes. They are not duplicate implementations to move into `src/`.
+`docs/audits/`. Root-level `kujo.toml`, `kennel.toml`, `VERSION`, `LICENSE`,
+README, changelog, contribution guide, and Spec metadata serve packaging,
+legal, or discovery purposes. `kennel.toml` describes the published source
+package. They are not duplicate implementations to move into `src/`.
 
 ## Usage
 

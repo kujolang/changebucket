@@ -1,11 +1,10 @@
 name: "ChangeBucket launch readiness review"
 goal: "Keep ChangeBucket locally release-ready as a Kujo-native, read-only git change-footprint and budget-check CLI for local review workflows."
-version: "1.0.0"
-background: "ChangeBucket is part of the Kujo prelaunch supporting-tooling matrix. The verified scope is local git diff analysis, category/churn reporting, and budget enforcement; it does not review code correctness or publish launch artifacts."
+version: "1.1.0"
+background: "ChangeBucket is part of the Kujo supporting-tooling matrix. The verified scope is local git diff analysis, category/churn reporting, and budget enforcement; it does not review code correctness or certify enterprise readiness."
 scope: "Repository-local CLI behavior, wrapper compatibility, deterministic JSON/Markdown/text output, read-only git command boundaries, budget enforcement, docs/readiness wording, and launch evidence capture."
 non_goals:
-  - "Publishing packages or public releases"
-  - "Pushing final release tags"
+  - "Publishing to registries outside the authorized GitHub release workflow"
   - "Claiming code-review, security-audit, compliance, or production-enforcement coverage"
   - "Running hosted services or live credential workflows"
 relevant_systems:
@@ -63,8 +62,7 @@ review_expectations:
   - "Review CLI output contracts before changing report fields or risk heuristics."
   - "Review docs for any wording that implies code review, security review, compliance, or production policy enforcement."
 human_approval_points:
-  - "Before publishing packages or public releases"
-  - "Before pushing final release tags"
+  - "Before publishing to additional external registries or pushing later release tags"
   - "Before claiming production enforcement, compliance, or security-audit coverage"
 priority: "high"
 tags:
