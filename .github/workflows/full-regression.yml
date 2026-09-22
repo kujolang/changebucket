@@ -1,0 +1,55 @@
+name: Full ChangeBucket regression
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            artifact: linux-x64
+            sha256: 49a4803b70b51a5d6cba04b5aba2bbe8786d19ec15861c18b67c3bac8670233c
+          - runner: ubuntu-24.04-arm
+            artifact: linux-arm64
+            sha256: d5faf688f33a651d41a614706733d5e3428f9f686915076aff1cb7365d764014
+          - runner: macos-15-intel
+            artifact: macos-x64
+            sha256: e0f41e86357d533f6a28a27c310a29deca21decb834f7baa550e894110e06ad5
+          - runner: macos-15
+            artifact: macos-arm64
+            sha256: 1412579122b882624c38322378fdbef203545071939effa67ab5e7470a5479db
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+      - name: Verify and install official Kujo 1.4.0 release
+        shell: bash
+        env:
+          ARTIFACT: ${{ matrix.artifact }}
+          SHA256: ${{ matrix.sha256 }}
+        run: |
+          set -euo pipefail
+          archive="kujo-v1.4.0-${ARTIFACT}.tar.gz"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/$archive" \
+            "https://github.com/kujolang/kujo/releases/download/v1.4.0/$archive"
+          cd "$RUNNER_TEMP"
+          printf '%s  %s\n' "$SHA256" "$archive" | shasum -a 256 --check
+          test "$(tar -tzf "$archive")" = kujo
+          mkdir -p changebucket-kujo
+          tar -xzf "$archive" -C changebucket-kujo
+          test "$(changebucket-kujo/kujo --version)" = 'kujo 1.4.0'
+          printf 'KUJO=%s\n' "$RUNNER_TEMP/changebucket-kujo/kujo" >> "$GITHUB_ENV"
+      - name: Check all modules and run offline regressions
+        run: |
+          git --version
+          python3 --version
+          ./tests/verify.sh

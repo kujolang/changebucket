@@ -10,4 +10,5 @@ for module in changebucket.kujo src/*.kujo tests/*.kujo tests/benchmarks/*.kujo;
 done
 ./tests/run.sh
 python3 tests/hardening_test.py
+python3 tests/release_smoke.py
 bash .github/scripts/check-kujo-tool-artifacts.sh
