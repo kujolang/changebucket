@@ -1,6 +1,6 @@
 # ChangeBucket: next-session review and worklist
 
-This is a prioritized backlog, not an enterprise-grade certification. The
+This was a prioritized backlog, not an enterprise-grade certification. The
 previous [hardening receipt](repository-hardening.md) records the earlier
 baseline and completed fixes. This pass reviewed the runtime modules, launcher,
 tests, docs, package/release metadata, and hosted workflows. The implementation
@@ -17,56 +17,74 @@ semantic code reviewer.
   gate. The root entrypoint, metadata, license, and discovery files are still
   needed; no duplicate runtime implementation was found outside `src/`.
 
-## Next work, ordered by impact
+## Worklist and completion evidence (2026-09-22)
 
-1. **P1 — Run the full regression gate in hosted CI.**
-   `.github/workflows/kujo-tool-artifacts-guard.yml` only runs the artifact
-   guard; the local `tests/verify.sh` runs checker, Kujo assertions, Python CLI
-   regressions, and artifact guard. Select an official, pinned Kujo runtime
-   release and verify its provenance on both supported CI environments before
-   adding a matrix gate. Acceptance: pull requests run the complete gate on
-   each supported platform with the same runtime version and no network in tests.
-2. **P1 — Measure and bound large untracked-file analysis.**
-   `src/diffsrc.kujo:read_added_lines` buffers and splits the whole file; Git
-   capture is already capped at 16 MiB per stream. Benchmark representative
-   large files and untracked-file counts, investigate supported Kujo streaming
-   APIs, and choose a documented size/timeout policy that fails clearly instead
-   of exhausting memory. Acceptance: bounded memory or a proven limit, unchanged
-   small-file counts, and tests for the chosen boundary.
-3. **P1 — Decide binary detection policy.**
-   Untracked binary classification is extension-only. Files with unrecognized
-   binary extensions can be miscounted as text. Compare a content probe against
-   Git's documented behavior and runtime byte APIs without reading symlink
-   targets. Acceptance: documented tradeoff, binary fixture without a known
-   extension, no external-path reads, and deterministic counts or clear errors.
-4. **P2 — Define release support and installation story.**
-   The README requires an existing Kujo runtime and a manual launcher symlink;
-   there is no pinned support matrix or verified installation procedure.
-   Document tested Kujo/Git versions and supported operating systems, then
-   provide a reproducible install example. Acceptance: fresh-machine smoke test
-   of documented commands and release package layout.
-5. **P2 — Evaluate category coverage with real repositories.**
-   `src/classify.kujo` intentionally uses fixed, filename-based rules and this
-   pass added common formats. Gather false-positive/negative cases from real
-   consumer projects before adding configurable rules or more special cases.
-   Acceptance: a small fixture corpus, stated precedence, and backwards-
-   compatible category keys and JSON shape.
-6. **P2 — Evaluate output-write safety and modes.**
-   `src/cli.kujo` intentionally overwrites the explicit `--output` path; a
-   failed write can leave a partial report, and `--json` takes precedence over
-   `--output`/`--markdown`. Decide whether atomic replacement and conflicting-
-   option diagnostics justify a compatibility change. Acceptance: documented
-   behavior and failure/overwrite tests, without silently dropping output.
-7. **P3 — Revisit rename and directory breakdown only with demand.**
-   `--no-renames` counts a move as delete+add; there is no per-directory churn.
-   Preserve the current JSON contract unless consumers need a new schema.
-   Acceptance: consumer example, explicitly versioned semantics, and fixtures
-   for unusual Git paths and large moves.
+1. **P1 — Run the full regression gate in hosted CI. Complete.**
+   `.github/workflows/full-regression.yml` pins the official Kujo v1.4.0
+   release archives and their published SHA-256 digests for Ubuntu 24.04 and
+   macOS 15, x64 and ARM64. The four jobs in [hosted run 35726954862](https://github.com/kujolang/changebucket/actions/runs/35726954862)
+   passed module checks, 132 Kujo assertions, 18 CLI regressions, clean-package
+   smoke, and the artifact guard. All four reported Git 2.55.0. The tests are
+   offline after the earlier, checksum-verified runtime download. The previous
+   artifact-only workflow is retained as an independent guard. A subsequent
+   large-move regression brings the CLI suite to 19 methods.
+2. **P1 — Measure and bound large untracked-file analysis. Complete.**
+   `read_added_lines` uses released Kujo `io_read_at` and `decode_text_lossy`
+   to count 64 KiB chunks, so analysis no longer buffers the entire file or its
+   split-line array. The per-chunk decoded output is capped at 192 KiB; a
+   concurrent truncation/size change fails explicitly. A reusable non-gating
+   `tests/benchmarks/untracked.py` measures one run per configuration. On this
+   host: 2 MiB/one file 0.600s before, 0.429s after; 1 MiB/eight files 1.023s
+   before, 0.843s after; 24 MiB/one file 1.824s after. These are exploratory
+   wall timings, not throughput guarantees. A regression counts an 18 MiB file
+   and a newline crossing the 64 KiB boundary. The 16 MiB Git capture limit is
+   separate and unchanged. The final JSON report is necessarily proportional
+   to the number of changed files.
+3. **P1 — Decide binary detection policy. Complete.**
+   A released byte-range read checks the first 8,000 bytes for NUL, matching
+   [Git's source heuristic](https://kernel.googlesource.com/pub/scm/git/git/+/b42b995d22bb2cf57be5cccb58e682117d5726a5/xdiff-interface.c).
+   The extension list remains a conservative fallback. Tests cover an unknown
+   binary extension, non-UTF-8 text, and an external-target symlink counted as
+   a link without reading its target. No claim is made that this defeats a
+   malicious concurrent filesystem writer.
+4. **P2 — Define release support and installation story. Complete for source
+   distribution.** README pins Kujo v1.4.0 and the four-platform hosted matrix,
+   gives a checksum-verified install example, and records local Git 2.42.0 and
+   hosted Git 2.55.0. A fresh temporary HTTPS clone at commit `7c18649` fetched
+   and verified the official macOS x64 archive, then passed help and JSON
+   analysis. `tests/release_smoke.py` also copies only the necessary package
+   files into a clean directory and exercises the launcher on all four CI
+   runners. The existing GitHub v1.0.0 release has no downloadable ChangeBucket
+   asset; publishing a new release is separate from this source-distribution
+   verification and was not performed.
+5. **P2 — Evaluate category coverage with real repositories. Complete.**
+   `tests/fixtures/category_cases.json` captures seven paths verified present
+   in `ai-chat`, `ssg`, `ai-sdk`, and `kujo`. The corpus caught one false negative:
+   `fuzz/corpus/` was source rather than test data. Rules now treat it as tests;
+   other paths match the expected overlapping categories. Category order and
+   JSON keys remain unchanged; fixed rules are still preferable to an unproven
+   plugin/configuration system.
+6. **P2 — Evaluate output-write safety and modes. Complete.**
+   `--output` uses Kujo's stable same-directory `write_file_atomic`, replacing
+   an existing report only after a complete write. It replaces rather than
+   follows an output-path symlink. `--json` plus `--markdown` or `--output` now
+   fails with exit 2 instead of silently discarding the requested report.
+   Regression tests cover overwrite, symlink target preservation, conflicting
+   modes, and nonexistent parent failures.
+7. **P3 — Revisit rename and directory breakdown. Complete.**
+   User-requested generality supplies the demand. `--detect-renames` uses Git's
+   similarity heuristic and shows both paths; `--by-directory` partitions
+   changed files into top-level directory totals. Default output remains v1;
+   either opt-in emits `schema_version: 2`. A CLI fixture moves a file to a name
+   containing both tab and newline and verifies old/new paths, one renamed file,
+   zero pure-move churn, directory totals, and `--no-deletes` behavior. A second
+   fixture moves a 2 MiB file without churn. No
+   per-category churn or automatic rename detection was added.
 
 ## Release decision
 
-The CLI is usable for its documented scope, but “enterprise-grade” and
-“universally useful” are not demonstrated by the existing tests. Hosted full-gate
-coverage, scale measurements, binary semantics, and a platform support matrix
-remain open. Do not claim those properties in marketing copy until the
-corresponding evidence exists.
+Every numbered item above has a source-backed implementation or explicit
+scope decision and verification evidence. This supports a production-shaped
+Git footprint CLI on the four tested host targets, not a universal enterprise
+certification. A published ChangeBucket release artifact and transactional
+snapshots of concurrently edited worktrees remain outside the completed scope.

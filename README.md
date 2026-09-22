@@ -24,8 +24,8 @@ explicitly instead of being mistaken for an empty change.
 
 ChangeBucket is a focused footprint tool, not an enterprise-readiness certification
 or a universal code-quality score. It works with Git repositories and requires a
-local Kujo runtime. The [next-session review](docs/audits/next-session-review.md)
-tracks the remaining portability, scale, and release-engineering work.
+local Kujo runtime. The [readiness worklist](docs/audits/next-session-review.md)
+records the scope, evidence, and remaining release boundaries.
 
 ## What ChangeBucket is *not*
 
@@ -41,7 +41,37 @@ ChangeBucket measures the footprint — counts and categories, not meaning.
 ## Quick start
 
 ChangeBucket is a small CLI written in the Kujo language. It needs the `kujo`
-runtime and `git` on your `PATH`. No network, no API keys, no build step.
+runtime and `git` on your `PATH`. Running analysis needs no network, API keys,
+or build step. Installing the runtime or fetching the source does use the network.
+
+The verified runtime is [Kujo v1.4.0](https://github.com/kujolang/kujo/releases/tag/v1.4.0).
+The full gate uses its official archives and fixed SHA-256 hashes on Ubuntu 24.04
+(x64/ARM64) and macOS 15 (Intel/ARM64). Python 3 is needed for development tests,
+not for end users. Other Git versions and OS releases may work but are not in
+the hosted support matrix. Git must support `git diff -z` and SHA-256 repos for
+the full development gate. The local macOS Intel smoke used Git 2.42.0; all
+four hosted runners used Git 2.55.0 in the initial passing matrix run.
+
+For a fresh macOS Intel installation (adjust the archive and hash for your
+platform using the [official checksum list](https://github.com/kujolang/kujo/releases/download/v1.4.0/checksums.txt)):
+
+```bash
+git clone https://github.com/kujolang/changebucket.git
+cd changebucket
+mkdir -p .local/kujo
+curl -fL -o .local/kujo/runtime.tar.gz \
+  https://github.com/kujolang/kujo/releases/download/v1.4.0/kujo-v1.4.0-macos-x64.tar.gz
+printf '%s  %s\n' \
+  'e0f41e86357d533f6a28a27c310a29deca21decb834f7baa550e894110e06ad5' \
+  '.local/kujo/runtime.tar.gz' | shasum -a 256 --check
+tar -xzf .local/kujo/runtime.tar.gz -C .local/kujo
+KUJO="$PWD/.local/kujo/kujo" ./bin/changebucket --help
+```
+
+The `.local/` path is a local installation directory, not part of this repo.
+For repeatable CI installation on all four supported targets, see the
+[pinned matrix workflow](.github/workflows/full-regression.yml). A clean
+source-package layout is exercised by `tests/release_smoke.py`.
 
 ```bash
 # Run the bundled launcher:
@@ -96,6 +126,9 @@ changebucket --markdown
 # Markdown report written to a file
 changebucket --output CHANGE_BUCKET.md
 
+# Optional move accounting and top-level directory totals
+changebucket --detect-renames --by-directory --json
+
 # Enforce a budget (non-zero exit if exceeded)
 changebucket check --max-files 20 --max-churn 800
 changebucket check --max-files 20 --max-churn 800 \
@@ -121,6 +154,8 @@ changebucket check --max-files 20 --max-churn 800 \
 | `--json` | Emit JSON only. |
 | `--markdown` | Emit a markdown report. |
 | `--output <file>` | Write a markdown report to `<file>`. |
+| `--detect-renames` | Use Git rename detection; report the old and new path as one renamed file. |
+| `--by-directory` | Include top-level directory totals in reports. |
 | `--max-files <n>` | Budget: maximum changed files. |
 | `--max-churn <n>` | Budget: maximum total churn (added + deleted lines). |
 | `--max-additions <n>` | Budget: maximum added lines. |
@@ -142,6 +177,12 @@ and non-negative integer budget flags that are not numeric. Invalid git refs
 exit `1` with an `error:` line. For safety, `--base` and `--head` reject empty
 refs, refs that begin with `-`, whitespace, and shell metacharacters before
 calling git.
+`--json` cannot be combined with `--markdown` or `--output` (usage error, exit
+`2`), so a requested report is never silently discarded. `--output` atomically
+replaces an existing file only after the full report is ready. It replaces a
+symlink at that path rather than following it; a write error leaves the previous
+report intact. Keep report paths outside repositories being analyzed when you
+do not intend the report itself to count as an untracked change.
 
 ### Default vs working-tree vs range
 
@@ -150,6 +191,11 @@ calling git.
   no commits yet, the base is the empty tree, so every tracked file is an addition.
 - **`--head <ref>`** — *range mode.* Compares two commits (`base..head`). Working
   tree and untracked files are ignored.
+- **`--detect-renames`** — opt-in Git rename heuristic (`--find-renames`). A
+  detected move has `status: "renamed"` and `previous_path`; a pure move has zero
+  churn and does not trip `--no-deletes`. Without the flag, the historical
+  delete-plus-add behavior remains. Rename similarity depends on Git, not on a
+  second ChangeBucket heuristic.
 
 ## File categories
 
@@ -159,7 +205,7 @@ buckets (e.g. `package.json` is both **config** and a **dependency manifest**).
 | Category | Matches (examples) |
 |---|---|
 | **source** | source extensions (`.js .ts .tsx .py .rs .go .php .rb .java .c .cpp .h .kujo .zig .hs .fs` etc.); excludes test/docs files |
-| **tests** | `test/` `tests/` `__tests__/` `spec/`, `*.test.*`, `*.spec.*`, `test_*`, `*_test.go/py/rs`, `*_spec.rb` |
+| **tests** | `test/` `tests/` `__tests__/` `spec/`, `fuzz/corpus/`, `*.test.*`, `*.spec.*`, `test_*`, `*_test.go/py/rs`, `*_spec.rb` |
 | **docs** | `*.md` `*.mdx` `*.rst`, `docs/`, `README*` `CHANGELOG*` `LICENSE*` `CONTRIBUTING*` |
 | **config** | `package.json` `tsconfig.json` `pyproject.toml` `Cargo.toml` `kujo.toml` `.editorconfig`, `*.config.*`, `vite/rollup/webpack/eslint/tailwind/...` configs, `*.toml/.ini/.cfg/.conf`, `.env*`, `Dockerfile` `Makefile` |
 | **dependency_manifests** | `package.json` `pyproject.toml` `Cargo.toml` `composer.json` `go.mod` `Gemfile` `requirements*.txt` `setup.py` `Pipfile` `pom.xml` `build.gradle[.kts]` `deno.json[c]` `pubspec.yaml` `mix.exs` |
@@ -241,6 +287,14 @@ The heuristic lives in [`src/analyze.kujo`](src/analyze.kujo) (`risk_level`).
 A file may appear in more than one category list, so category counts can overlap;
 `files_changed` is always the unique file count.
 
+The default JSON contract is unchanged (schema v1, with no `schema_version`
+field). Either opt-in flag emits `schema_version: 2`. In v2, detected renames
+include `files[].previous_path`; `--by-directory` adds `directories`, an object
+keyed by `.` for root files or `name/` for each top-level directory. Every row
+contains `files_changed`, `lines_added`, `lines_deleted`, and `total_churn`.
+Directory totals partition changed files, so their sums equal the overall
+summary. The v2 flags work in text and Markdown reports too.
+
 ## Markdown report
 
 See [`examples/CHANGE_BUCKET.example.md`](examples/CHANGE_BUCKET.example.md) for a
@@ -279,25 +333,32 @@ standard-library CLI regressions):
 ```
 
 This checks every Kujo module, runs both suites, and checks the tool-artifact
-guard. Each test run owns a unique temporary workspace. Eval metadata uses
+guard and a clean package-layout smoke test. Each test run owns a unique
+temporary workspace. Eval metadata uses
 repository-relative paths; run it from the repository root.
+
+For an opt-in, non-gating scale probe, run
+`KUJO=/path/to/kujo python3 tests/benchmarks/untracked.py --mib 24 --files 1`.
 
 ## Non-goals and limitations
 
 - **Not a reviewer or summarizer.** No semantic judgement, no per-hunk prose.
 - **No `--diff-file` mode yet.** Analysis requires a git repository. Parsing a
   standalone unified diff is a planned future improvement (see `AGENTS.md`).
-- **Rename detection is off** (`--no-renames`). A rename is reported as a delete
-  plus an add, which is intentionally conservative for a footprint tool.
+- **Rename detection defaults off** (`--no-renames`) for backwards compatibility.
+  `--detect-renames` opts into Git's heuristic and the v2 report contract.
 - **Ref syntax is intentionally conservative.** `--base` and `--head` accept
   normal branch/tag/commit-ish values but reject whitespace, leading dashes, and
   shell metacharacters before git runs. This conservative policy is preserved
   even though Git now receives structured arguments.
-- **Untracked binary detection is by extension**, since git's numstat cannot
-  report line counts for files it does not yet track. Symlinks (including dangling
-  links and links with binary extensions) count as one added line. A vanished
-  untracked file, including one with a binary extension, causes an explicit
-  operational error. Unknown binary formats may still be counted as text.
+- **Untracked binary detection** uses known binary extensions and Git's
+  first-8,000-byte NUL probe for unknown formats. It does not execute external
+  textconv. Symlinks (including dangling links and links with binary extensions)
+  count as one added line without reading their targets. A vanished untracked
+  file fails explicitly. Text is counted in bounded 64 KiB reads, including
+  files larger than Git's separate subprocess-capture bound; non-UTF-8 bytes
+  are decoded lossily for line counting. A binary file with no NUL in the probe
+  and an unknown extension may still be treated as text.
 - **Git execution is bounded:** each subprocess uses the runtime's 30-second
   timeout and a 16 MiB limit per captured stream. Incomplete output fails analysis;
   it is never treated as a partial successful report. Git receives structured

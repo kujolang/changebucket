@@ -32,9 +32,9 @@ rg -n "pattern" -g '!examples/CHANGE_BUCKET.example.md'
 
 ## Current status
 
-The prior hardening gate passed 119 Kujo assertions and 12 Python CLI
-regression methods as of 2026-09-04. Run `./tests/verify.sh` for current
-evidence; the remaining work is tracked in `docs/audits/next-session-review.md`.
+Run `./tests/verify.sh` for current evidence. The full gate is hosted on four
+Linux/macOS x64/ARM64 runners with a pinned Kujo v1.4.0 release. The worklist
+and completion evidence live in `docs/audits/next-session-review.md`.
 
 ## First files to read (in order)
 
@@ -65,7 +65,8 @@ kujo run changebucket.kujo -- --help
 for f in changebucket.kujo src/*.kujo tests/*.kujo; do kujo check "$f"; done
 ```
 
-There is **no build step** and **no package install**. `git` must be on `PATH`.
+There is **no build step for ChangeBucket**. Git and Kujo v1.4.0 must be on
+`PATH` or set `KUJO` to the installed runtime; the README has the pinned install.
 
 ## Repo map
 
@@ -76,7 +77,8 @@ kujo.toml                      package metadata
 src/util.kujo                  iso_now, commas, pad_right, basename, includes, truthy
 src/diffsrc.kujo               READ-ONLY git: is_repo, head_commit, resolve_refs,
                                validate_diff, numstat_text, namestatus_text,
-                               untracked_list, is_binary_path, count_added_lines
+                               untracked_list, is_binary_path, count_added_lines;
+                               bounded untracked reads and NUL probe
 src/classify.kujo              classify(path) -> [categories]; category_order()
 src/analyze.kujo               analyze(repo, base, head) -> model; risk_level(...)
 src/budget.kujo                empty_config, has_constraints, evaluate(model, cfg)
@@ -84,6 +86,9 @@ src/render.kujo                render_text, render_markdown, top_by_churn
 src/cli.kujo                   parse_args, build_config, run, main
 tests/changebucket_test.kujo   hand-rolled, filesystem-isolated suite
 tests/run.sh                   test runner
+tests/release_smoke.py          clean source-package launcher smoke
+tests/benchmarks/untracked.py  optional large-file throughput probe
+tests/fixtures/category_cases.json  real ecosystem category cases
 examples/CHANGE_BUCKET.example.md   a real generated markdown report
 ```
 
@@ -129,6 +134,7 @@ changebucket --base A --head B   # range A..B
 changebucket --json              # JSON only
 changebucket --markdown          # markdown to stdout
 changebucket --output FILE.md    # markdown to file
+changebucket --detect-renames --by-directory --json # opt-in v2 report
 changebucket check --max-files N --max-churn N \
   --no-deletes --no-dependency-changes --no-lockfile-changes \
   --no-config-changes --no-generated-changes   # exit 1 if exceeded
@@ -163,7 +169,8 @@ changebucket check --max-files N --max-churn N \
 ## Verification checklist
 
 - [ ] `for f in changebucket.kujo src/*.kujo tests/*.kujo; do kujo check "$f"; done` all pass
-- [ ] `./tests/run.sh` → "119 passed, 0 failed"
+- [ ] `./tests/verify.sh` → checker, Kujo assertions, CLI tests, release smoke,
+      and artifact guard all pass
 - [ ] `kujo run changebucket.kujo -- --help` prints help
 - [ ] worktree analysis in a temp repo (default, `--json`, `--markdown`)
 - [ ] `check --max-files 1` in a multi-file change exits non-zero
@@ -174,11 +181,11 @@ changebucket check --max-files N --max-churn N \
 
 - `--diff-file <path>`: analyze a standalone unified diff (enables non-git usage).
   Would need a numstat-equivalent parser; deferred.
-- Rename detection (currently `--no-renames`): could surface `files_renamed` with
-  `-M`, at the cost of brace-path parsing in numstat.
+- Rename detection is opt-in; default `--no-renames` retains v1 semantics.
 - Configurable category rules / budget profiles (e.g. a `.changebucket.toml`).
   Resist building a plugin system until real usage demands it.
-- Per-directory or per-category churn breakdown.
+- Per-category churn breakdown if consumers need it; top-level directory
+  totals are already available with `--by-directory`.
 
 ## Session notes
 

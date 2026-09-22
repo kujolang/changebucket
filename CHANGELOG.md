@@ -4,6 +4,16 @@ All notable changes to ChangeBucket are documented here.
 
 ## Unreleased
 
+- Add a pinned, checksum-verified Kujo 1.4.0 four-platform CI regression gate
+  and a clean source-package launcher smoke test.
+- Stream untracked text in bounded chunks and probe unknown formats for NUL
+  bytes; retain symlink handling and fail on files changed during analysis.
+- Atomically replace requested Markdown reports and reject conflicting JSON
+  output modes rather than silently dropping a report.
+- Add opt-in Git rename detection and top-level directory totals under an
+  explicit v2 JSON contract while keeping default v1 output unchanged.
+- Exercise category rules against paths from real Kujo ecosystem repositories,
+  including fuzz-corpus test data, and add a reproducible scale probe.
 - Reject vanished untracked binary-named files instead of reporting an
   incomplete successful footprint.
 - Recognize modern lockfiles/manifests and Zig, Haskell, and F# source files;

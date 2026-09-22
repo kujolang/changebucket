@@ -1,6 +1,7 @@
 # Generated reports (the committed sample lives under examples/).
 /CHANGE_BUCKET.md
 /changebucket-report.md
+/.local/
 
 # OS / editor noise.
 .DS_Store
