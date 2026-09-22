@@ -32,8 +32,9 @@ rg -n "pattern" -g '!examples/CHANGE_BUCKET.example.md'
 
 ## Current status
 
-Complete and working as of 2026-09-04. All 119 Kujo assertions and 12 Python CLI regression tests pass; every source file
-passes the checker. v1.0.0.
+The prior hardening gate passed 119 Kujo assertions and 12 Python CLI
+regression methods as of 2026-09-04. Run `./tests/verify.sh` for current
+evidence; the remaining work is tracked in `docs/audits/next-session-review.md`.
 
 ## First files to read (in order)
 

@@ -26,8 +26,8 @@ kujo --version
 
 If a local script explicitly requires `KUJO_BIN` or `KUJO`, set it only for that command.
 
-Check the repo README, `Makefile`, `tests/`, and `scripts/` directory for the
-authoritative local commands.
+For this repository, the authoritative commands are in the README and
+`tests/verify.sh`. There is no Makefile or root `scripts/` directory.
 
 ## Agent And Example Hygiene
 
@@ -95,16 +95,14 @@ the repo.
 Prefer repo-owned commands, for example:
 
 ```bash
-make test
-bash tests/run.sh
-bash scripts/release_quality_gates.sh
+./tests/verify.sh
 ```
 
-At minimum, validate touched Kujo files and run the repo test harness:
+For a focused check, validate touched Kujo files and run the repo test harness:
 
 ```bash
 kujo check path/to/file.kujo
-kujo test
+./tests/run.sh
 ```
 
 If the repo includes frontend, bridge, Rust, Python, shell, performance, or

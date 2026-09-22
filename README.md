@@ -22,6 +22,11 @@ Analysis never modifies your repository; `--output` writes the requested report.
 User-supplied refs are validated before git runs, so bad or unsafe refs fail
 explicitly instead of being mistaken for an empty change.
 
+ChangeBucket is a focused footprint tool, not an enterprise-readiness certification
+or a universal code-quality score. It works with Git repositories and requires a
+local Kujo runtime. The [next-session review](docs/audits/next-session-review.md)
+tracks the remaining portability, scale, and release-engineering work.
+
 ## What ChangeBucket is *not*
 
 ChangeBucket measures a change footprint. It is deliberately narrow. It is **not**:
@@ -55,6 +60,17 @@ Usage:
 ```
 
 For convenience, symlink `bin/changebucket` somewhere on your `PATH`.
+The launcher resolves its own installation directory but analyzes your current
+directory unless you pass `--repo`.
+
+### Repository layout
+
+`changebucket.kujo` is the required thin Kujo entrypoint; `bin/changebucket`
+is its portable launcher. Runtime implementation lives in `src/`, tests in
+`tests/`, the generated report example in `examples/`, and audit material in
+`docs/audits/`. Root-level `kujo.toml`, `VERSION`, `LICENSE`, README, changelog,
+contribution guide, and Spec metadata serve packaging, legal, or discovery
+purposes. They are not duplicate implementations to move into `src/`.
 
 ## Usage
 
@@ -142,12 +158,12 @@ buckets (e.g. `package.json` is both **config** and a **dependency manifest**).
 
 | Category | Matches (examples) |
 |---|---|
-| **source** | source extensions (`.js .ts .tsx .py .rs .go .php .rb .java .c .cpp .h .kujo` etc.); excludes test/docs files |
+| **source** | source extensions (`.js .ts .tsx .py .rs .go .php .rb .java .c .cpp .h .kujo .zig .hs .fs` etc.); excludes test/docs files |
 | **tests** | `test/` `tests/` `__tests__/` `spec/`, `*.test.*`, `*.spec.*`, `test_*`, `*_test.go/py/rs`, `*_spec.rb` |
 | **docs** | `*.md` `*.mdx` `*.rst`, `docs/`, `README*` `CHANGELOG*` `LICENSE*` `CONTRIBUTING*` |
 | **config** | `package.json` `tsconfig.json` `pyproject.toml` `Cargo.toml` `kujo.toml` `.editorconfig`, `*.config.*`, `vite/rollup/webpack/eslint/tailwind/...` configs, `*.toml/.ini/.cfg/.conf`, `.env*`, `Dockerfile` `Makefile` |
-| **dependency_manifests** | `package.json` `pyproject.toml` `Cargo.toml` `composer.json` `go.mod` `Gemfile` `requirements*.txt` `setup.py` `Pipfile` `pom.xml` `build.gradle` |
-| **lockfiles** | `package-lock.json` `pnpm-lock.yaml` `yarn.lock` `Cargo.lock` `poetry.lock` `composer.lock` `go.sum` `Gemfile.lock` `Pipfile.lock` `bun.lockb` |
+| **dependency_manifests** | `package.json` `pyproject.toml` `Cargo.toml` `composer.json` `go.mod` `Gemfile` `requirements*.txt` `setup.py` `Pipfile` `pom.xml` `build.gradle[.kts]` `deno.json[c]` `pubspec.yaml` `mix.exs` |
+| **lockfiles** | `package-lock.json` `pnpm-lock.yaml` `yarn.lock` `Cargo.lock` `poetry.lock` `composer.lock` `go.sum` `Gemfile.lock` `Pipfile.lock` `bun.lock` `bun.lockb` `uv.lock` `deno.lock` `mix.lock` `pubspec.lock` `gradle.lockfile` |
 | **generated** | `dist/` `build/` `target/` `node_modules/` `out/` `coverage/` `__pycache__/` `vendor/`, `*.min.js/.min.css`, `*.map`, `*_pb2.py`, `*.pb.go` |
 | **ci** | `.github/workflows/`, `.circleci/`, `.gitlab-ci.yml`, `Jenkinsfile`, `.travis.yml`, `azure-pipelines.yml` |
 | **scripts** | `scripts/` `bin/`, `*.sh .bash .zsh .ps1` |
@@ -252,7 +268,8 @@ repos under `$TMPDIR`, needs no network or credentials, and touches no global
 state. It covers numstat/name-status parsing, every file category, churn and
 risk calculation, budget pass/fail, JSON validity, markdown/text rendering,
 deleted and binary files, unusual legal git paths, invalid refs, CLI validation,
-and the non-git error path. The Kujo suite has 119 assertions.
+and the non-git error path. The earlier hardening baseline had 119 Kujo
+assertions; the current count is reported by the gate.
 
 Run the complete development gate (requires Python 3 for the additional
 standard-library CLI regressions):
@@ -278,8 +295,9 @@ repository-relative paths; run it from the repository root.
   even though Git now receives structured arguments.
 - **Untracked binary detection is by extension**, since git's numstat cannot
   report line counts for files it does not yet track. Symlinks (including dangling
-  links and links with binary extensions) count as one added line. An unreadable
-  or vanished untracked text file causes an explicit operational error.
+  links and links with binary extensions) count as one added line. A vanished
+  untracked file, including one with a binary extension, causes an explicit
+  operational error. Unknown binary formats may still be counted as text.
 - **Git execution is bounded:** each subprocess uses the runtime's 30-second
   timeout and a 16 MiB limit per captured stream. Incomplete output fails analysis;
   it is never treated as a partial successful report. Git receives structured
