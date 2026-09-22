@@ -36,8 +36,10 @@ class Hardening(unittest.TestCase):
                               check=True, capture_output=True, text=True).stdout
 
     def cli(self, *args, code=0, env=None):
+        prefix = ["check"] if args and args[0] == "check" else []
+        options = args[1:] if prefix else args
         result = subprocess.run([KUJO, "run", str(ROOT / "changebucket.kujo"),
-                                 "--", "--repo", str(self.repo), *args],
+                                 "--", *prefix, "--repo", str(self.repo), *options],
                                 capture_output=True, text=True, env=env, cwd=ROOT)
         self.assertEqual(result.returncode, code, result.stdout + result.stderr)
         return result.stdout
@@ -119,6 +121,17 @@ class Hardening(unittest.TestCase):
         model = json.loads(self.cli("--json"))
         self.assertEqual(model["summary"]["total_churn"], 2)
 
+    def test_modern_dependency_budget(self):
+        for name, ban, category in (("uv.lock", "--no-lockfile-changes", "lockfiles"),
+                                    ("deno.json", "--no-dependency-changes", "dependency_manifests")):
+            with self.subTest(name=name):
+                path = self.repo / name
+                path.write_text("one\n")
+                model = json.loads(self.cli("--json"))
+                self.assertIn(name, model["categories"][category])
+                self.assertFalse(json.loads(self.cli("check", ban, "--json", code=1))["budget"]["passed"])
+                path.unlink()
+
     def test_markdown_budget_messages_are_literal(self):
         (self.repo / "dist").mkdir()
         name = "<img src=x>_[link](url).js"
@@ -153,13 +166,15 @@ class Hardening(unittest.TestCase):
             self.assertEqual(model["summary"]["lines_added"], 1)
 
     def test_untracked_read_failure_is_not_zero_churn(self):
-        wrapper = self.work / "git"
-        wrapper.write_text('#!/bin/sh\ncase "$*" in\n'
-                           '*ls-files*) printf "vanished.js\\000"; exit 0;;\nesac\n'
-                           f'exec {shlex.quote(GIT)} "$@"\n')
-        wrapper.chmod(0o700)
-        env = dict(os.environ, PATH=str(self.work) + os.pathsep + os.environ["PATH"])
-        self.assertIn("cannot read untracked file", self.cli("--json", env=env, code=1))
+        for name in ("vanished.js", "vanished.png"):
+            with self.subTest(name=name):
+                wrapper = self.work / "git"
+                wrapper.write_text('#!/bin/sh\ncase "$*" in\n'
+                                   f'*ls-files*) printf "{name}\\000"; exit 0;;\nesac\n'
+                                   f'exec {shlex.quote(GIT)} "$@"\n')
+                wrapper.chmod(0o700)
+                env = dict(os.environ, PATH=str(self.work) + os.pathsep + os.environ["PATH"])
+                self.assertIn("cannot read untracked file", self.cli("--json", env=env, code=1))
 
 
 if __name__ == "__main__":

@@ -269,10 +269,16 @@ export func count_added_lines(repo_path, path) {
 
 export func read_untracked_file(repo_path, path) {
     try {
-        if path_is_symlink(join_path(repo_path, path)) {
+        full := join_path(repo_path, path)
+        if path_is_symlink(full) {
             return {"lines": 1, "binary": false}
         }
+        # Binary paths are not opened for line counting, but they must still
+        # exist. A file removed after ls-files must not become a false success.
         if is_binary_path(path) {
+            if path_is_file(full) == false {
+                return {"error": "cannot read untracked file: " + display_path(path)}
+            }
             return {"lines": 0, "binary": true}
         }
         result := read_added_lines(repo_path, path)
