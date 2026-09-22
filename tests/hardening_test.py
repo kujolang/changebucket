@@ -225,6 +225,18 @@ class Hardening(unittest.TestCase):
         self.assertIn("Top-level directories", self.cli("--detect-renames", "--by-directory"))
         self.assertIn("## Top-level Directories", self.cli("--by-directory", "--markdown"))
 
+    def test_large_pure_move_preserves_zero_churn(self):
+        (self.repo / "original.txt").write_bytes(b"different line\n" * 140000)
+        self.git("add", "original.txt")
+        self.git("commit", "-qm", "large fixture")
+        (self.repo / "subdir").mkdir()
+        self.git("mv", "original.txt", "subdir/moved.txt")
+        model = json.loads(self.cli("--detect-renames", "--by-directory", "--json"))
+        self.assertEqual(model["summary"]["files_renamed"], 1)
+        self.assertEqual(model["summary"]["total_churn"], 0)
+        self.assertEqual(model["files"][0]["previous_path"], "original.txt")
+        self.assertEqual(model["directories"]["subdir/"]["total_churn"], 0)
+
     def test_unborn_object_formats(self):
         for object_format in ("sha1", "sha256"):
             self.repo = self.work / object_format
