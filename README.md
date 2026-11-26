@@ -324,7 +324,7 @@ budget was checked), file-category counts, and the largest changes by churn.
 
 The suite is self-contained and filesystem-isolated: it builds throwaway git
 repos under `$TMPDIR`, needs no network or credentials, and touches no global
-state. It covers numstat/name-status parsing, every file category, churn and
+state. It covers raw status/numstat parsing, every file category, churn and
 risk calculation, budget pass/fail, JSON validity, markdown/text rendering,
 deleted and binary files, unusual legal git paths, invalid refs, CLI validation,
 and the non-git error path. The earlier hardening baseline had 119 Kujo
@@ -368,8 +368,9 @@ For an opt-in, non-gating scale probe, run
   timeout and a 16 MiB limit per captured stream. Incomplete output fails analysis;
   it is never treated as a partial successful report. Git receives structured
   arguments, so restricted Kujo runs need `process-exec` rather than `shell-exec`.
-  External diff/textconv helpers are disabled, paths are root-relative, and
-  submodule changes are included regardless of diff display configuration.
+  Tracked statuses and line counts come from one Git diff and share its capture
+  limit. External diff/textconv helpers are disabled, paths are root-relative,
+  and submodule changes are included regardless of diff display configuration.
 - **Working trees are live**, not transactional snapshots. Run against a stable
   worktree or use committed refs when concurrent writers matter. Local Git
   configuration, including clean filters, remains trusted; this is not a sandbox.

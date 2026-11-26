@@ -58,7 +58,7 @@ class Hardening(unittest.TestCase):
                     CB_LOG=str(self.work / "calls"), CB_FAIL=failure)
 
     def test_git_failures_are_not_empty_success(self):
-        for failure in ("--show-toplevel", "--verify", "--name-status", "--numstat", "ls-files"):
+        for failure in ("--show-toplevel", "--verify", "--raw", "--numstat", "ls-files"):
             with self.subTest(failure=failure):
                 output = self.cli("--json", env=self.wrapper_env(failure), code=1)
                 self.assertIn("injected git failure", output)
@@ -76,13 +76,50 @@ class Hardening(unittest.TestCase):
         self.assertIn("capture limit", self.cli("--json", env=env, code=1))
 
     def test_git_process_count_and_read_only_boundary(self):
-        self.cli("--json", env=self.wrapper_env())
+        (self.repo / "seed").write_text("two\n")
+        files = json.loads(self.cli("--json", env=self.wrapper_env()))["files"]
+        self.assertEqual(len(files), 1)
+        self.assertEqual((files[0]["status"], files[0]["additions"], files[0]["deletions"]),
+                         ("modified", 1, 1))
         calls = (self.work / "calls").read_text().splitlines()
-        self.assertEqual(len(calls), 6, calls)
-        self.assertEqual(sum(" diff " in c for c in calls), 2)
+        self.assertEqual(len(calls), 5, calls)
+        diffs = [c for c in calls if " diff " in c]
+        self.assertEqual(len(diffs), 1, calls)
+        self.assertIn(" --raw --numstat ", diffs[0])
         for call in calls:
             self.assertTrue(any(command in call for command in
                                 (" rev-parse ", " diff ", " ls-files ")), call)
+
+    def test_tracked_status_and_churn_use_the_same_git_result(self):
+        (self.repo / "seed").write_text("two\n")
+        wrapper = self.work / "git"
+        wrapper.write_text(f"#!{sys.executable}\n"
+                           "from pathlib import Path\nimport os, subprocess, sys\n"
+                           f"git, repo = {GIT!r}, Path({str(self.repo)!r})\n"
+                           "args = [git] + sys.argv[1:]\n"
+                           "if 'diff' in sys.argv:\n"
+                           "    output = subprocess.check_output(args)\n"
+                           "    (repo / 'seed').unlink(missing_ok=True)\n"
+                           "    sys.stdout.buffer.write(output)\n"
+                           "else:\n"
+                           "    os.execv(git, args)\n")
+        wrapper.chmod(0o700)
+        env = dict(os.environ, PATH=str(self.work) + os.pathsep + os.environ["PATH"])
+        files = json.loads(self.cli("--json", env=env))["files"]
+        self.assertEqual(len(files), 1)
+        self.assertEqual((files[0]["status"], files[0]["additions"], files[0]["deletions"]),
+                         ("modified", 1, 1))
+
+    def test_incomplete_git_records_fail_explicitly(self):
+        wrapper = self.work / "git"
+        wrapper.write_text(f"#!{sys.executable}\nimport os, sys\n"
+                           'if "--numstat" in sys.argv:\n'
+                           '    sys.stdout.buffer.write(b"1\\t1\\tseed")\n'
+                           '    sys.exit(0)\n'
+                           f'os.execv({GIT!r}, [{GIT!r}] + sys.argv[1:])\n')
+        wrapper.chmod(0o700)
+        env = dict(os.environ, PATH=str(self.work) + os.pathsep + os.environ["PATH"])
+        self.assertIn("unterminated record", self.cli("--json", env=env, code=1))
 
     def test_ref_path_collision_and_empty_value(self):
         (self.repo / "HEAD").write_text("path\n")

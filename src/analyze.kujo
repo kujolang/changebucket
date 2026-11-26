@@ -7,9 +7,9 @@
 
 from src.util import display_path
 from src.classify import classify, category_order
-from src.diffsrc import is_repo, read_repo_root, resolve_refs, read_diff, read_untracked, read_untracked_file
+from src.diffsrc import is_repo, read_repo_root, resolve_refs, read_analysis_diff, read_untracked, read_untracked_file
 
-# Map a git name-status letter to a human status word.
+# Map a Git status letter to a human status word.
 func status_word(letter) {
     if letter == "A" {
         return "added"
@@ -43,83 +43,88 @@ func add_to_cats(cats, categories, path) {
     return cats
 }
 
-# Ingest `git diff --name-status` lines: seed each path with its status.
-func ingest_namestatus(order, info, text) {
-    mut ord := order
-    nul := parse_json("\"\\u0000\"")
-    fields := split(text, nul)
-    mut i := 0
-    while i + 1 < len(fields) {
-        status := fields[i]
-        letter := substring(status, 0, 1)
-        mut path := fields[i + 1]
-        mut previous := ""
-        mut advance := 2
-        if (letter == "R" || letter == "C") && i + 2 < len(fields) {
-            previous = path
-            path = fields[i + 2]
-            advance = 3
-        }
-        if status != "" && path != "" {
-            if has_key(info, path) == 0 {
-                info[path] := {"path": path, "status": status_word(letter), "additions": 0, "deletions": 0, "binary": false}
-                ord = push(ord, path)
-            } else {
-                e := info[path]
-                e["status"] := status_word(letter)
-                info[path] := e
-            }
-            if previous != "" {
-                e := info[path]
-                e["previous_path"] := previous
-                info[path] := e
-            }
-        }
-        i = i + advance
-    }
-    return {"order": ord, "info": info}
-}
-
-# Ingest `git diff --numstat` lines: attach additions/deletions (or binary).
-func ingest_numstat(order, info, text) {
-    mut ord := order
+# Git emits the raw statuses first, then the numstat records, all NUL-delimited.
+# A rename has two paths in both sections. In numstat that form starts with an
+# empty path, so tabs or newlines in either path cannot change record boundaries.
+func ingest_tracked(text) {
+    mut order := []
+    mut info := {}
     nul := parse_json("\"\\u0000\"")
     records := split(text, nul)
-    mut i := 0
-    while i < len(records) {
-        record := records[i]
-        if record != "" {
-            cols := split(record, "\t")
-            adds := cols[0]
-            dels := cols[1]
-            # Only the first two tabs are separators; a path may itself contain
-            # tabs, so reconstruct it from all remaining fields.
-            mut path := join(slice(cols, 2, len(cols)), "\t")
-            if path == "" && i + 2 < len(records) {
-                path = records[i + 2]
-                i = i + 2
-            }
-            binary := adds == "-" || dels == "-"
-            mut a := 0
-            mut d := 0
-            if binary == false {
-                a = parse_int(adds)
-                d = parse_int(dels)
-            }
-            if has_key(info, path) == 0 {
-                info[path] := {"path": path, "status": "modified", "additions": a, "deletions": d, "binary": binary}
-                ord = push(ord, path)
-            } else {
-                e := info[path]
-                e["additions"] := a
-                e["deletions"] := d
-                e["binary"] := binary
-                info[path] := e
-            }
-        }
-        i = i + 1
+    end := len(records) - 1
+    if records[end] != "" {
+        return {"error": "git diff returned an unterminated record"}
     }
-    return {"order": ord, "info": info}
+    mut i := 0
+    while i < end && starts_with(records[i], ":") {
+        metadata := split(records[i], " ")
+        if len(metadata) != 5 || metadata[4] == "" || i + 1 >= end {
+            return {"error": "git diff returned an incomplete raw status"}
+        }
+        letter := substring(metadata[4], 0, 1)
+        mut path := records[i + 1]
+        mut previous := ""
+        i = i + 2
+        if letter == "R" || letter == "C" {
+            if i >= end || path == "" {
+                return {"error": "git diff returned an incomplete raw rename"}
+            }
+            previous = path
+            path = records[i]
+            i = i + 1
+        }
+        if path == "" {
+            return {"error": "git diff returned an empty raw path"}
+        }
+        if has_key(info, path) == 0 {
+            info[path] := {"path": path, "additions": 0, "deletions": 0, "binary": false}
+            order = push(order, path)
+        }
+        entry := info[path]
+        entry["status"] := status_word(letter)
+        if previous != "" {
+            entry["previous_path"] := previous
+        }
+        info[path] := entry
+    }
+
+    while i < end {
+        cols := split(records[i], "\t")
+        if len(cols) < 3 {
+            return {"error": "git diff returned an incomplete numstat record"}
+        }
+        adds := cols[0]
+        dels := cols[1]
+        mut path := join(slice(cols, 2, len(cols)), "\t")
+        i = i + 1
+        if path == "" {
+            if i + 1 >= end || records[i] == "" {
+                return {"error": "git diff returned an incomplete numstat rename"}
+            }
+            path = records[i + 1]
+            i = i + 2
+        }
+        if has_key(info, path) == 0 {
+            return {"error": "git diff returned numstat for an unknown path"}
+        }
+        binary := adds == "-" && dels == "-"
+        entry := info[path]
+        if binary == false {
+            a := parse_int(adds)
+            d := parse_int(dels)
+            if type(a) != "int" || type(d) != "int" || a < 0 || d < 0 {
+                return {"error": "git diff returned invalid numstat counts"}
+            }
+            entry["additions"] := a
+            entry["deletions"] := d
+        } else {
+            entry["additions"] := 0
+            entry["deletions"] := 0
+        }
+        entry["binary"] := binary
+        info[path] := entry
+    }
+    return {"order": order, "info": info}
 }
 
 # Ingest untracked files as additions (worktree mode only).
@@ -274,25 +279,16 @@ export func analyze_with_options(repo, base_flag, head_flag, options) {
     }
     refs["detect_renames"] := options["detect_renames"]
     refs["by_directory"] := options["by_directory"]
-    names := read_diff(root, refs, "--name-status")
-    if has_key(names, "error") == 1 {
-        return names
+    tracked := read_analysis_diff(root, refs)
+    if has_key(tracked, "error") == 1 {
+        return tracked
     }
-    numbers := read_diff(root, refs, "--numstat")
-    if has_key(numbers, "error") == 1 {
-        return numbers
+    merged := ingest_tracked(tracked["text"])
+    if has_key(merged, "error") == 1 {
+        return merged
     }
-
-    mut order := []
-    mut info := {}
-
-    ns := ingest_namestatus(order, info, names["text"])
-    order = ns["order"]
-    info = ns["info"]
-
-    num := ingest_numstat(order, info, numbers["text"])
-    order = num["order"]
-    info = num["info"]
+    mut order := merged["order"]
+    mut info := merged["info"]
 
     if refs["include_untracked"] == true {
         untracked := read_untracked(root)

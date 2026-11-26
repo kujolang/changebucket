@@ -154,23 +154,31 @@ export func resolve_refs(repo_path, base_flag, head_flag) {
     }
 }
 
-# Each analysis consumes checked results; a failed subprocess must never become
-# a successful zero-change report. Keep the original scalar helpers available
-# for existing module consumers, but use read_diff/read_untracked for analysis.
-export func read_diff(repo_path, refs, format) {
-    if format != "--name-status" && format != "--numstat" {
-        return {"error": "unsupported git diff format"}
-    }
+# Require complete, successful Git output before parsing. The analyzer requests
+# both formats together so they describe the same tracked diff.
+func diff_result(repo_path, refs, formats) {
     mut rename_flag := "--no-renames"
     if has_key(refs, "detect_renames") == 1 && refs["detect_renames"] == true {
         rename_flag = "--find-renames"
     }
-    r := git(repo_path, ["diff", format, "-z", rename_flag, "--no-ext-diff", "--no-textconv", "--no-relative", "--ignore-submodules=none", refs["spec"], "--"])
+    flags := concat(["diff"], formats)
+    r := git(repo_path, concat(flags, ["-z", rename_flag, "--no-ext-diff", "--no-textconv", "--no-relative", "--ignore-submodules=none", refs["spec"], "--"]))
     if r["exitcode"] != 0 {
         msg := display_path(trim(r["stderr"]))
         return {"error": "invalid git revision or range '" + display_path(refs["spec"]) + "': git diff failed: " + msg}
     }
     return {"text": r["stdout"]}
+}
+
+export func read_analysis_diff(repo_path, refs) {
+    return diff_result(repo_path, refs, ["--raw", "--numstat"])
+}
+
+export func read_diff(repo_path, refs, format) {
+    if format != "--name-status" && format != "--numstat" {
+        return {"error": "unsupported git diff format"}
+    }
+    return diff_result(repo_path, refs, [format])
 }
 
 export func validate_diff(repo_path, refs) {
@@ -296,10 +304,10 @@ export func read_untracked_file(repo_path, path) {
         }
         # Binary paths are not opened for line counting, but they must still
         # exist. A file removed after ls-files must not become a false success.
+        if path_is_file(full) == false {
+            return {"error": "cannot read untracked file: " + display_path(path)}
+        }
         if is_binary_path(path) {
-            if path_is_file(full) == false {
-                return {"error": "cannot read untracked file: " + display_path(path)}
-            }
             return {"lines": 0, "binary": true}
         }
         # Git's default binary heuristic checks for NUL in the first 8000
